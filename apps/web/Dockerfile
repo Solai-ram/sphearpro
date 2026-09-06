@@ -32,7 +32,8 @@ FROM base AS builder
 ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 
-RUN npm ci
+# Full install (needs tsc/vite). --ignore-scripts avoids husky prepare when .git is absent.
+RUN npm ci --ignore-scripts
 COPY apps/web ./apps/web
 COPY packages ./packages
 RUN npm run build --workspace=@his-lite/web

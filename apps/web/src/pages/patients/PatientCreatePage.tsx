@@ -39,7 +39,8 @@ function patientSchema(forOp: boolean) {
   });
 }
 
-type PatientForm = z.infer<ReturnType<typeof patientSchema>>;
+type PatientFormInput = z.input<ReturnType<typeof patientSchema>>;
+type PatientForm = z.output<ReturnType<typeof patientSchema>>;
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
@@ -52,8 +53,9 @@ export function PatientCreatePage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<PatientForm>({
-    resolver: zodResolver(patientSchema(forOp)),
+  } = useForm<PatientFormInput, unknown, PatientForm>({
+    // zodResolver input/output diverge when schemas use .pipe(z.coerce…)
+    resolver: zodResolver(patientSchema(forOp)) as any,
     defaultValues: {
       gender: forOp ? undefined : 'UNKNOWN',
       address: forOp ? { line: '' } : { country: 'India' },
@@ -242,9 +244,15 @@ export function PatientCreatePage() {
                 className={field}
                 placeholder="House / street, area, city, pincode"
               />
-              {errors.address && 'line' in errors.address && errors.address.line && (
-                <p className="mt-1 text-sm text-red-600">{errors.address.line.message}</p>
-              )}
+              {(() => {
+                const lineErr =
+                  errors.address && typeof errors.address === 'object' && 'line' in errors.address
+                    ? (errors.address as { line?: { message?: string } }).line
+                    : undefined;
+                return lineErr?.message ? (
+                  <p className="mt-1 text-sm text-red-600">{String(lineErr.message)}</p>
+                ) : null;
+              })()}
             </div>
           ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-2">

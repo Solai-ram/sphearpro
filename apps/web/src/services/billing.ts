@@ -7,7 +7,7 @@ import type {
   Refund,
   PaymentMethod,
 } from '../types/billing';
-import { fetchApi, getAccessToken } from '../lib/api';
+import { fetchApi, getAccessToken, API_BASE } from '../lib/api';
 
 export const billingApi = {
   async getInvoices(filters?: InvoiceFilters): Promise<PaginatedInvoices> {

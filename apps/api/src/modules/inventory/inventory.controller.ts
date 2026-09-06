@@ -63,23 +63,23 @@ export class InventoryController {
   updateSupplier(
     @Param('id') id: string,
     @Body() body: { name?: string; contact?: string; email?: string; phone?: string; isActive?: boolean },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.updateSupplier(id, body, userId);
+    return this.inventoryService.updateSupplier(id, requireClinicId(user), body, user.sub);
   }
 
   @Get('low-stock')
   @Authenticated('inventory.lowstock.view')
   @ApiOperation({ summary: 'List products at or below low-stock threshold' })
-  lowStock() {
-    return this.inventoryService.lowStock();
+  lowStock(@CurrentUser() user: { clinicId?: string }) {
+    return this.inventoryService.lowStock(requireClinicId(user));
   }
 
   @Get('reports/stock')
   @Authenticated('inventory.product.view')
   @ApiOperation({ summary: 'Stock report with on-hand qty and value' })
-  stockReport() {
-    return this.inventoryService.stockReport();
+  stockReport(@CurrentUser() user: { clinicId?: string }) {
+    return this.inventoryService.stockReport(requireClinicId(user));
   }
 
   @Get('reports/sales')
@@ -89,11 +89,12 @@ export class InventoryController {
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
   salesReport(
+    @CurrentUser() user: { clinicId?: string },
     @Query('period') period?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.inventoryService.salesReport(period, startDate, endDate);
+    return this.inventoryService.salesReport(requireClinicId(user), period, startDate, endDate);
   }
 
   @Get('products')
@@ -182,9 +183,9 @@ export class InventoryController {
       warranty?: string;
       colour?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.updateProduct(id, body, userId);
+    return this.inventoryService.updateProduct(id, requireClinicId(user), body, user.sub);
   }
 
   @Get('stock/transactions')
@@ -195,12 +196,14 @@ export class InventoryController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   listStock(
+    @CurrentUser() user: { clinicId?: string },
     @Query('productId') productId?: string,
     @Query('type') type?: 'PURCHASE' | 'SALE' | 'RETURN' | 'DAMAGE' | 'ADJUSTMENT',
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
     return this.inventoryService.listStockTransactions({
+      clinicId: requireClinicId(user),
       productId,
       type,
       page: page ? Number(page) : 1,
@@ -221,8 +224,9 @@ export class InventoryController {
       unitCost?: number;
       reference?: string;
       note?: string;
+      clinicId?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     if (body.type === 'SALE') {
       throw new BadRequestException('Use POST /inventory/sales to sell products so billing and stock stay in sync');
@@ -230,7 +234,12 @@ export class InventoryController {
     if (body.type === 'RETURN') {
       throw new BadRequestException('Use POST /inventory/returns to submit a return request for admin approval');
     }
-    return this.inventoryService.recordStockMovement({ ...body, createdBy: userId });
+    const { clinicId: _ignored, ...rest } = body;
+    return this.inventoryService.recordStockMovement({
+      ...rest,
+      createdBy: user.sub,
+      clinicId: requireClinicId(user),
+    });
   }
 
   @Get('returns')
@@ -264,7 +273,7 @@ export class InventoryController {
     @Body() body: { productId: string; quantity: number; reason?: string },
   ) {
     return this.inventoryService.createReturnRequest(
-      { clinicId: requireClinicId(user), ...body },
+      { ...body, clinicId: requireClinicId(user) },
       user.sub,
     );
   }
@@ -307,6 +316,7 @@ export class InventoryController {
   @ApiQuery({ name: 'productId', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   listSales(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('patientId') patientId?: string,
@@ -315,6 +325,7 @@ export class InventoryController {
     @Query('endDate') endDate?: string,
   ) {
     return this.inventoryService.listSales({
+      clinicId: requireClinicId(user),
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
       patientId,

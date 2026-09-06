@@ -7,7 +7,6 @@ import {
   Loader2,
   AlertCircle,
   Package,
-  MessageSquare,
   Brain,
   Stethoscope,
   ArrowUpRight,

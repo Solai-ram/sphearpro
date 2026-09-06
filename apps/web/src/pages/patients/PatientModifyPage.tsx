@@ -16,7 +16,8 @@ const schema = z.object({
   address: z.string().trim().min(1, 'Address is required'),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 type PatientRecord = {
   id: string;
@@ -43,8 +44,9 @@ export function PatientModifyPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+  } = useForm<FormInput, unknown, FormValues>({
+    // zodResolver input/output diverge when schemas use .pipe(z.coerce…)
+    resolver: zodResolver(schema) as any,
   });
 
   useEffect(() => {

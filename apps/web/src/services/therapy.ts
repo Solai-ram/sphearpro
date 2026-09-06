@@ -12,7 +12,7 @@ import type {
   SessionFrequency,
   AttendanceStatus,
 } from '../types/therapy';
-import { fetchApi, getAccessToken } from '../lib/api';
+import { fetchApi, getAccessToken, API_BASE } from '../lib/api';
 
 export const therapyApi = {
   async getCases(filters?: TherapyFilters): Promise<Paginated<TherapyCase>> {
@@ -114,7 +114,7 @@ export const therapyApi = {
     });
   },
 
-  async rescheduleSession(sessionId: string, scheduledAt: string, note?: string) {
+  async rescheduleSession(sessionId: string, scheduledAt: string, note?: string): Promise<TherapySession> {
     return fetchApi(`/therapy/sessions/${sessionId}/reschedule`, {
       method: 'PATCH',
       body: JSON.stringify({ scheduledAt, note }),

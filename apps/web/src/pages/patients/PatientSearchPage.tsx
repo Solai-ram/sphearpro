@@ -77,24 +77,26 @@ export function PatientSearchPage() {
   };
 
   const age = ageFromDob(patient?.dateOfBirth);
-  const records = [
-    ...(patient?.opCases || []).map((item) => ({
-      key: `op-${item.id}`,
-      kind: 'OP visit',
-      at: item.createdAt,
-      title: item.provider?.name ? `Doctor: ${item.provider.name}` : 'OP consultation',
-      detail: item.chiefComplaint || item.status || '',
-      href: `/patients/${patient.id}`,
-    })),
-    ...(patient?.invoices || []).map((item) => ({
-      key: `inv-${item.id}`,
-      kind: 'Invoice',
-      at: item.issueDate,
-      title: item.invoiceNumber || 'Invoice',
-      detail: item.status || '',
-      href: `/billing/${item.id}`,
-    })),
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const records = !patient
+    ? []
+    : [
+        ...(patient.opCases || []).map((item) => ({
+          key: `op-${item.id}`,
+          kind: 'OP visit',
+          at: item.createdAt,
+          title: item.provider?.name ? `Doctor: ${item.provider.name}` : 'OP consultation',
+          detail: item.chiefComplaint || item.status || '',
+          href: `/patients/${patient.id}`,
+        })),
+        ...(patient.invoices || []).map((item) => ({
+          key: `inv-${item.id}`,
+          kind: 'Invoice',
+          at: item.issueDate,
+          title: item.invoiceNumber || 'Invoice',
+          detail: item.status || '',
+          href: `/billing/${item.id}`,
+        })),
+      ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
   return (
     <div className="space-y-4">

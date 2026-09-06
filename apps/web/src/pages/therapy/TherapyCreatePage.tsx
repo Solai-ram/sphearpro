@@ -40,7 +40,7 @@ export function TherapyCreatePage() {
 
   useEffect(() => {
     if (!patientId) return;
-    patientsApi.getById(patientId).then((p: { name: string; patientNumber: string }) => {
+    patientsApi.getById<{ name: string; patientNumber: string }>(patientId).then((p) => {
       setPatientLabel(`${p.name} (${p.patientNumber})`);
     }).catch(() => undefined);
   }, [patientId]);

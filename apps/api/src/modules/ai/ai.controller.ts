@@ -36,20 +36,25 @@ export class AiController {
   @Get('usage')
   @Authenticated('ai.review')
   @ApiOperation({ summary: 'AI usage and pending review counts' })
-  usage(@Query('days') days?: string) {
-    return this.aiService.usage(days ? Number(days) : 30);
+  usage(
+    @CurrentUser() user: { clinicId?: string },
+    @Query('days') days?: string,
+  ) {
+    return this.aiService.usage(requireClinicId(user), days ? Number(days) : 30);
   }
 
   @Get('requests')
   @Authenticated('ai.review')
   @ApiOperation({ summary: 'List AI requests and drafts' })
   listRequests(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('type') type?: string,
     @Query('status') status?: string,
   ) {
     return this.aiService.listRequests({
+      clinicId: requireClinicId(user),
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
       type,
@@ -134,6 +139,6 @@ export class AiController {
     @Param('id') id: string,
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.aiService.reviewOutput(id, user.sub);
+    return this.aiService.reviewOutput(id, requireClinicId(user), user.sub);
   }
 }

@@ -581,7 +581,7 @@ export class SubscriptionService {
       activated: false,
       awaitingWebhook: true,
       message:
-        'Payment method saved. Your 7-day free trial is active — billed after the trial via Razorpay.',
+        `Payment method saved. Your ${trialDays}-day free trial is active — billed after the trial via Razorpay.`,
       subscription: await this.getSubscription(clinicId),
       actorId: opts?.actorId || null,
     };

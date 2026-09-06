@@ -48,7 +48,7 @@ function statusCopy(status: InvoiceStatus) {
     case 'REFUNDED':
       return { label: 'Refunded', tone: 'refund' as const };
     default:
-      return { label: status.replace('_', ' '), tone: 'due' as const };
+      return { label: String(status).replace('_', ' '), tone: 'due' as const };
   }
 }
 

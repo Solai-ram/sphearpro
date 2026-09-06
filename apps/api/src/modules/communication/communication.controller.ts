@@ -53,6 +53,7 @@ export class CommunicationController {
   @ApiQuery({ name: 'patientId', required: false, type: String })
   @ApiQuery({ name: 'type', required: false, type: String })
   async findAll(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
@@ -60,6 +61,7 @@ export class CommunicationController {
     @Query('type') type?: string,
   ) {
     return this.communicationService.findAll({
+      clinicId: requireClinicId(user),
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 50,
       status,
@@ -71,40 +73,54 @@ export class CommunicationController {
   @Get('messages/:id')
   @ApiBearerAuth()
   @Authenticated('communication.view')
-  async findById(@Param('id') id: string) {
-    return this.communicationService.findById(id);
+  async findById(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.communicationService.findById(id, requireClinicId(user));
   }
 
   @Post('messages/:id/resend')
   @ApiBearerAuth()
   @Authenticated('communication.send')
-  async resend(@Param('id') id: string) {
-    return this.communicationService.resend(id);
+  async resend(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.communicationService.resend(id, requireClinicId(user));
   }
 
   @Post('invoices/:id/send')
   @ApiBearerAuth()
   @Authenticated('communication.send')
   @ApiOperation({ summary: 'Send invoice notification over WhatsApp' })
-  sendInvoice(@Param('id') id: string) {
-    return this.communicationService.queueInvoiceNotification(id, { force: true });
+  sendInvoice(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.communicationService.queueInvoiceNotification(id, {
+      force: true,
+      clinicId: requireClinicId(user),
+    });
   }
 
   @Get('templates')
   @ApiBearerAuth()
   @Authenticated('communication.view')
-  listTemplates() {
-    return this.communicationService.listTemplates();
+  listTemplates(@CurrentUser() user: { clinicId?: string }) {
+    return this.communicationService.listTemplates(requireClinicId(user));
   }
 
   @Post('templates')
   @ApiBearerAuth()
   @Authenticated('communication.send')
   saveTemplate(
-    @Body() body: { name: string; type: 'APPOINTMENT_REMINDER' | 'THERAPY_REMINDER' | 'PAYMENT_RECEIPT' | 'INVOICE' | 'GENERIC'; language?: string; body: string; isActive?: boolean },
-    @CurrentUser('sub') userId: string,
+    @Body() body: {
+      name: string;
+      type: 'APPOINTMENT_REMINDER' | 'THERAPY_REMINDER' | 'PAYMENT_RECEIPT' | 'INVOICE' | 'GENERIC';
+      language?: string;
+      body: string;
+      isActive?: boolean;
+      clinicId?: string;
+    },
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.communicationService.upsertTemplate(body, userId);
+    const { clinicId: _ignored, ...rest } = body;
+    return this.communicationService.upsertTemplate(
+      { ...rest, clinicId: requireClinicId(user) },
+      user.sub,
+    );
   }
 
   @Patch('templates/:name')
@@ -112,8 +128,13 @@ export class CommunicationController {
   @Authenticated('communication.send')
   updateTemplate(
     @Param('name') name: string,
-    @Body() body: { type?: 'APPOINTMENT_REMINDER' | 'THERAPY_REMINDER' | 'PAYMENT_RECEIPT' | 'INVOICE' | 'GENERIC'; language?: string; body?: string; isActive?: boolean },
-    @CurrentUser('sub') userId: string,
+    @Body() body: {
+      type?: 'APPOINTMENT_REMINDER' | 'THERAPY_REMINDER' | 'PAYMENT_RECEIPT' | 'INVOICE' | 'GENERIC';
+      language?: string;
+      body?: string;
+      isActive?: boolean;
+    },
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     return this.communicationService.upsertTemplate({
       name,
@@ -121,7 +142,8 @@ export class CommunicationController {
       language: body.language,
       body: body.body || '',
       isActive: body.isActive,
-    }, userId);
+      clinicId: requireClinicId(user),
+    }, user.sub);
   }
 
   @Get('queue/metrics')

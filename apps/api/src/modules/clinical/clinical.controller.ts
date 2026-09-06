@@ -141,9 +141,12 @@ export class ClinicalController {
       vitals?: Record<string, any>;
       status?: 'OPEN' | 'CLOSED';
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.clinicalService.updateOpCase(id, { ...body, updatedBy: userId });
+    return this.clinicalService.updateOpCase(id, requireClinicId(user), {
+      ...body,
+      updatedBy: user.sub,
+    });
   }
 
   @Post(':id/invoice')
@@ -178,8 +181,9 @@ export class ClinicalController {
       visitedAt?: string;
       notes?: string;
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.clinicalService.addVisit(id, body);
+    return this.clinicalService.addVisit(id, requireClinicId(user), body);
   }
 
   // ---------------------------------------------------------------------------
@@ -197,8 +201,9 @@ export class ClinicalController {
       description: string;
       type?: 'PRIMARY' | 'SECONDARY';
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.clinicalService.addDiagnosis(id, body);
+    return this.clinicalService.addDiagnosis(id, requireClinicId(user), body);
   }
 
   @Patch('diagnoses/:diagnosisId')
@@ -211,15 +216,19 @@ export class ClinicalController {
       description?: string;
       type?: 'PRIMARY' | 'SECONDARY';
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.clinicalService.updateDiagnosis(diagnosisId, body);
+    return this.clinicalService.updateDiagnosis(diagnosisId, requireClinicId(user), body);
   }
 
   @Delete('diagnoses/:diagnosisId')
   @Authenticated('clinical.diagnosis.create')
   @ApiOperation({ summary: 'Delete diagnosis' })
-  async deleteDiagnosis(@Param('diagnosisId') diagnosisId: string) {
-    return this.clinicalService.deleteDiagnosis(diagnosisId);
+  async deleteDiagnosis(
+    @Param('diagnosisId') diagnosisId: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.clinicalService.deleteDiagnosis(diagnosisId, requireClinicId(user));
   }
 
   // ---------------------------------------------------------------------------
@@ -233,9 +242,12 @@ export class ClinicalController {
   async addClinicalNote(
     @Param('id') id: string,
     @Body() body: { content: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.clinicalService.addClinicalNote(id, { content: body.content, createdBy: userId });
+    return this.clinicalService.addClinicalNote(id, requireClinicId(user), {
+      content: body.content,
+      createdBy: user.sub,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -258,16 +270,22 @@ export class ClinicalController {
         instructions?: string;
       }[];
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.clinicalService.addPrescription(id, { ...body, createdBy: userId });
+    return this.clinicalService.addPrescription(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Get('prescriptions/:prescriptionId')
   @Authenticated('clinical.op.view')
   @ApiOperation({ summary: 'Get prescription by ID' })
-  async getPrescription(@Param('prescriptionId') prescriptionId: string) {
-    return this.clinicalService.getPrescription(prescriptionId);
+  async getPrescription(
+    @Param('prescriptionId') prescriptionId: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.clinicalService.getPrescription(prescriptionId, requireClinicId(user));
   }
 
   // ---------------------------------------------------------------------------
@@ -284,8 +302,9 @@ export class ClinicalController {
       dueDate: string;
       reason?: string;
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.clinicalService.addFollowUp(id, body);
+    return this.clinicalService.addFollowUp(id, requireClinicId(user), body);
   }
 
   @Patch('followups/:followUpId')
@@ -298,7 +317,8 @@ export class ClinicalController {
       reason?: string;
       status?: 'PENDING' | 'COMPLETED' | 'CANCELLED';
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.clinicalService.updateFollowUp(followUpId, body);
+    return this.clinicalService.updateFollowUp(followUpId, requireClinicId(user), body);
   }
 }

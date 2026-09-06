@@ -13,6 +13,7 @@ import { fetchApi } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import { PRODUCT_NAME, STANDARD_PLAN_LABEL } from '../../lib/product';
 import {
+  type ClinicSeatUsage,
   type ClinicSubscription,
   type SubscriptionAccess,
   formatDate,
@@ -89,7 +90,7 @@ function StatusBanner({
   }
 
   if (status === 'TRIALING') {
-    const trialEnd = sub?.trialEnd ? new Date(sub.trialEnd) : null;
+    const trialEnd = subscription?.trialEnd ? new Date(subscription.trialEnd) : null;
     const daysLeft = trialEnd
       ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86_400_000))
       : null;
@@ -197,7 +198,7 @@ export function SubscriptionBillingPage() {
 
       {!loading && access && (
         <div className="mt-6 space-y-6">
-          <StatusBanner subscription={sub} access={access} />
+          <StatusBanner subscription={sub ?? null} access={access} />
 
           <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">

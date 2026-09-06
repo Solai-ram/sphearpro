@@ -1,4 +1,4 @@
-import { fetchApi, getAccessToken } from '../lib/api';
+import { fetchApi, getAccessToken, API_BASE } from '../lib/api';
 
 export interface PatientDocument {
   id: string;

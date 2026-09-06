@@ -78,15 +78,22 @@ export class ClinicalService {
 
     let provider: { id: string; name: string } | null = null;
     if (data.providerId) {
-      provider = await this.prisma.staffProfile.findUnique({
-        where: { id: data.providerId },
+      provider = await this.prisma.staffProfile.findFirst({
+        where: { id: data.providerId, clinicId: data.clinicId },
         select: { id: true, name: true },
       });
       if (!provider) throw new NotFoundException('Doctor not found');
     }
 
     if (data.appointmentId) {
-      const existing = await this.prisma.opCase.findFirst({ where: { appointmentId: data.appointmentId } });
+      const appointment = await this.prisma.appointment.findFirst({
+        where: { id: data.appointmentId, clinicId: data.clinicId },
+        select: { id: true },
+      });
+      if (!appointment) throw new NotFoundException('Appointment not found');
+      const existing = await this.prisma.opCase.findFirst({
+        where: { appointmentId: data.appointmentId, clinicId: data.clinicId },
+      });
       if (existing) throw new BadRequestException('An OP case already exists for this appointment');
     }
 
@@ -255,13 +262,13 @@ export class ClinicalService {
     };
   }
 
-  async updateOpCase(id: string, data: {
+  async updateOpCase(id: string, clinicId: string, data: {
     chiefComplaint?: string;
     vitals?: Record<string, any>;
     status?: 'OPEN' | 'CLOSED';
     updatedBy?: string;
   }) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id } });
+    const opCase = await this.prisma.opCase.findFirst({ where: { id, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     const updated = await this.prisma.opCase.update({
@@ -288,8 +295,8 @@ export class ClinicalService {
     return updated;
   }
 
-  async addVisit(opCaseId: string, data: AddVisitInput) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id: opCaseId } });
+  async addVisit(opCaseId: string, clinicId: string, data: AddVisitInput) {
+    const opCase = await this.prisma.opCase.findFirst({ where: { id: opCaseId, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     const visit = await this.prisma.opVisit.create({
@@ -327,8 +334,8 @@ export class ClinicalService {
   // DIAGNOSIS (ICD-10)
   // ---------------------------------------------------------------------------
 
-  async addDiagnosis(opCaseId: string, data: AddDiagnosisInput) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id: opCaseId } });
+  async addDiagnosis(opCaseId: string, clinicId: string, data: AddDiagnosisInput) {
+    const opCase = await this.prisma.opCase.findFirst({ where: { id: opCaseId, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     const diagnosis = await this.prisma.diagnosis.create({
@@ -354,8 +361,14 @@ export class ClinicalService {
     return diagnosis;
   }
 
-  async updateDiagnosis(diagnosisId: string, data: { code?: string; description?: string; type?: 'PRIMARY' | 'SECONDARY' }) {
-    const diagnosis = await this.prisma.diagnosis.findUnique({ where: { id: diagnosisId } });
+  async updateDiagnosis(
+    diagnosisId: string,
+    clinicId: string,
+    data: { code?: string; description?: string; type?: 'PRIMARY' | 'SECONDARY' },
+  ) {
+    const diagnosis = await this.prisma.diagnosis.findFirst({
+      where: { id: diagnosisId, opCase: { clinicId } },
+    });
     if (!diagnosis) throw new NotFoundException('Diagnosis not found');
 
     return this.prisma.diagnosis.update({
@@ -368,8 +381,10 @@ export class ClinicalService {
     });
   }
 
-  async deleteDiagnosis(diagnosisId: string) {
-    const diagnosis = await this.prisma.diagnosis.findUnique({ where: { id: diagnosisId } });
+  async deleteDiagnosis(diagnosisId: string, clinicId: string) {
+    const diagnosis = await this.prisma.diagnosis.findFirst({
+      where: { id: diagnosisId, opCase: { clinicId } },
+    });
     if (!diagnosis) throw new NotFoundException('Diagnosis not found');
     await this.prisma.diagnosis.delete({ where: { id: diagnosisId } });
     return { message: 'Diagnosis deleted successfully' };
@@ -379,8 +394,8 @@ export class ClinicalService {
   // CLINICAL NOTE
   // ---------------------------------------------------------------------------
 
-  async addClinicalNote(opCaseId: string, data: AddClinicalNoteInput) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id: opCaseId } });
+  async addClinicalNote(opCaseId: string, clinicId: string, data: AddClinicalNoteInput) {
+    const opCase = await this.prisma.opCase.findFirst({ where: { id: opCaseId, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     const note = await this.prisma.clinicalNote.create({
@@ -409,8 +424,8 @@ export class ClinicalService {
   // PRESCRIPTION
   // ---------------------------------------------------------------------------
 
-  async addPrescription(opCaseId: string, data: AddPrescriptionInput) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id: opCaseId } });
+  async addPrescription(opCaseId: string, clinicId: string, data: AddPrescriptionInput) {
+    const opCase = await this.prisma.opCase.findFirst({ where: { id: opCaseId, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     if (!data.items || data.items.length === 0) {
@@ -458,9 +473,9 @@ export class ClinicalService {
     return prescription;
   }
 
-  async getPrescription(prescriptionId: string) {
-    const prescription = await this.prisma.prescription.findUnique({
-      where: { id: prescriptionId },
+  async getPrescription(prescriptionId: string, clinicId: string) {
+    const prescription = await this.prisma.prescription.findFirst({
+      where: { id: prescriptionId, opCase: { clinicId } },
       include: { items: true },
     });
     if (!prescription) throw new NotFoundException('Prescription not found');
@@ -471,8 +486,8 @@ export class ClinicalService {
   // FOLLOW-UP
   // ---------------------------------------------------------------------------
 
-  async addFollowUp(opCaseId: string, data: AddFollowUpInput) {
-    const opCase = await this.prisma.opCase.findUnique({ where: { id: opCaseId } });
+  async addFollowUp(opCaseId: string, clinicId: string, data: AddFollowUpInput) {
+    const opCase = await this.prisma.opCase.findFirst({ where: { id: opCaseId, clinicId } });
     if (!opCase) throw new NotFoundException('OP case not found');
 
     const dueDate = new Date(data.dueDate);
@@ -511,8 +526,14 @@ export class ClinicalService {
     return followUp;
   }
 
-  async updateFollowUp(followUpId: string, data: { dueDate?: Date | string; reason?: string; status?: 'PENDING' | 'COMPLETED' | 'CANCELLED' }) {
-    const followUp = await this.prisma.followUp.findUnique({ where: { id: followUpId } });
+  async updateFollowUp(
+    followUpId: string,
+    clinicId: string,
+    data: { dueDate?: Date | string; reason?: string; status?: 'PENDING' | 'COMPLETED' | 'CANCELLED' },
+  ) {
+    const followUp = await this.prisma.followUp.findFirst({
+      where: { id: followUpId, opCase: { clinicId } },
+    });
     if (!followUp) throw new NotFoundException('Follow-up not found');
 
     return this.prisma.followUp.update({

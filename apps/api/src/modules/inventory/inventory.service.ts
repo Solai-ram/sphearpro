@@ -125,10 +125,11 @@ export class InventoryService {
 
   async updateSupplier(
     id: string,
+    clinicId: string,
     data: { name?: string; contact?: string; email?: string; phone?: string; isActive?: boolean },
     updatedBy?: string,
   ) {
-    const existing = await this.prisma.supplier.findUnique({ where: { id } });
+    const existing = await this.prisma.supplier.findFirst({ where: { id, clinicId } });
     if (!existing) throw new NotFoundException('Supplier not found');
     const supplier = await this.prisma.supplier.update({ where: { id }, data });
     await this.auditService.log({
@@ -232,8 +233,16 @@ export class InventoryService {
     const sku = data.sku.trim().toUpperCase();
     const existing = await this.prisma.product.findUnique({ where: { clinicId_sku: { clinicId: data.clinicId, sku } } });
     if (existing) throw new ConflictException('SKU already exists');
-    const category = await this.prisma.productCategory.findUnique({ where: { id: data.categoryId } });
+    const category = await this.prisma.productCategory.findFirst({
+      where: { id: data.categoryId, clinicId: data.clinicId },
+    });
     if (!category) throw new NotFoundException('Category not found');
+    if (data.supplierId) {
+      const supplier = await this.prisma.supplier.findFirst({
+        where: { id: data.supplierId, clinicId: data.clinicId },
+      });
+      if (!supplier) throw new NotFoundException('Supplier not found');
+    }
     if (data.unitPrice < 0) throw new BadRequestException('unitPrice cannot be negative');
     if (data.lowStockThreshold < 0) throw new BadRequestException('lowStockThreshold cannot be negative');
 
@@ -259,6 +268,7 @@ export class InventoryService {
     if (data.initialStock && data.initialStock > 0) {
       await this.recordStockMovement({
         productId: product.id,
+        clinicId: data.clinicId,
         type: 'PURCHASE',
         quantity: data.initialStock,
         supplierId: data.supplierId,
@@ -284,6 +294,7 @@ export class InventoryService {
 
   async updateProduct(
     id: string,
+    clinicId: string,
     data: {
       name?: string;
       categoryId?: string;
@@ -299,10 +310,12 @@ export class InventoryService {
     },
     updatedBy?: string,
   ) {
-    const existing = await this.prisma.product.findUnique({ where: { id } });
+    const existing = await this.prisma.product.findFirst({ where: { id, clinicId } });
     if (!existing) throw new NotFoundException('Product not found');
     if (data.categoryId) {
-      const category = await this.prisma.productCategory.findUnique({ where: { id: data.categoryId } });
+      const category = await this.prisma.productCategory.findFirst({
+        where: { id: data.categoryId, clinicId },
+      });
       if (!category) throw new NotFoundException('Category not found');
     }
     const product = await this.prisma.product.update({
@@ -347,10 +360,16 @@ export class InventoryService {
     return last?.balance ?? 0;
   }
 
-  async listStockTransactions(params: { productId?: string; type?: StockTxnType; page?: number; limit?: number }) {
-    const { page = 1, limit = 30, productId, type } = params;
+  async listStockTransactions(params: {
+    clinicId: string;
+    productId?: string;
+    type?: StockTxnType;
+    page?: number;
+    limit?: number;
+  }) {
+    const { page = 1, limit = 30, productId, type, clinicId } = params;
     const skip = (page - 1) * limit;
-    const where: Prisma.StockTransactionWhereInput = {};
+    const where: Prisma.StockTransactionWhereInput = { clinicId };
     if (productId) where.productId = productId;
     if (type) where.type = type;
     const [data, total] = await Promise.all([
@@ -387,10 +406,16 @@ export class InventoryService {
         'Direct stock returns are not allowed. Submit a return request for admin approval.',
       );
     }
-    const product = await this.prisma.product.findUnique({ where: { id: data.productId } });
+    const productWhere = data.clinicId
+      ? { id: data.productId, clinicId: data.clinicId }
+      : { id: data.productId };
+    const product = await this.prisma.product.findFirst({ where: productWhere });
     if (!product) throw new NotFoundException('Product not found');
+    const clinicId = data.clinicId ?? product.clinicId;
     if (data.supplierId) {
-      const supplier = await this.prisma.supplier.findUnique({ where: { id: data.supplierId } });
+      const supplier = await this.prisma.supplier.findFirst({
+        where: { id: data.supplierId, clinicId },
+      });
       if (!supplier) throw new NotFoundException('Supplier not found');
     }
 
@@ -408,7 +433,7 @@ export class InventoryService {
       }
       return tx.stockTransaction.create({
         data: {
-          clinicId: data.clinicId ?? product.clinicId,
+          clinicId,
           productId: data.productId,
           supplierId: data.supplierId,
           type: data.type,
@@ -444,9 +469,9 @@ export class InventoryService {
     return txn;
   }
 
-  async lowStock() {
+  async lowStock(clinicId: string) {
     const products = await this.prisma.product.findMany({
-      where: { isActive: true },
+      where: { clinicId, isActive: true },
       include: { category: true },
       orderBy: { name: 'asc' },
     });
@@ -564,6 +589,7 @@ export class InventoryService {
   }
 
   async listSales(params: {
+    clinicId: string;
     page?: number;
     limit?: number;
     patientId?: string;
@@ -571,9 +597,9 @@ export class InventoryService {
     startDate?: Date;
     endDate?: Date;
   }) {
-    const { page = 1, limit = 20, patientId, productId, startDate, endDate } = params;
+    const { page = 1, limit = 20, patientId, productId, startDate, endDate, clinicId } = params;
     const skip = (page - 1) * limit;
-    const where: Prisma.ProductSaleWhereInput = {};
+    const where: Prisma.ProductSaleWhereInput = { clinicId };
     if (patientId) where.patientId = patientId;
     if (productId) where.productId = productId;
     if (startDate || endDate) {
@@ -597,8 +623,9 @@ export class InventoryService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async stockReport() {
+  async stockReport(clinicId: string) {
     const products = await this.prisma.product.findMany({
+      where: { clinicId },
       include: { category: true },
       orderBy: [{ name: 'asc' }],
     });
@@ -635,10 +662,10 @@ export class InventoryService {
     };
   }
 
-  async salesReport(period?: string, startDate?: string, endDate?: string) {
+  async salesReport(clinicId: string, period?: string, startDate?: string, endDate?: string) {
     const range = resolveRange(period, startDate, endDate);
     const sales = await this.prisma.productSale.findMany({
-      where: { soldAt: { gte: range.from, lte: range.to } },
+      where: { clinicId, soldAt: { gte: range.from, lte: range.to } },
       orderBy: { soldAt: 'desc' },
       include: {
         product: { select: { id: true, sku: true, name: true, category: { select: { name: true } } } },

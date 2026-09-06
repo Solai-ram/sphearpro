@@ -99,7 +99,7 @@ export class RazorpayWebhookService {
       (typeof parsed.id === 'string' && parsed.id ? parsed.id : null) ||
       createHash('sha256').update(raw).digest('hex').slice(0, 40);
 
-    const existing = await this.prisma.webhookEvent.findUnique({
+    let existing = await this.prisma.webhookEvent.findUnique({
       where: {
         provider_eventId: { provider: RAZORPAY_PROVIDER, eventId },
       },
@@ -110,22 +110,40 @@ export class RazorpayWebhookService {
       return { received: true, duplicate: true, processed: true, eventId, eventType };
     }
 
-    const row =
-      existing ||
-      (await this.prisma.webhookEvent.create({
-        data: {
-          provider: RAZORPAY_PROVIDER,
-          eventId,
-          eventType,
-          payload: parsed as Prisma.InputJsonValue,
-          signature,
-          processed: false,
-        },
-      }));
+    let row = existing;
+    if (!row) {
+      try {
+        row = await this.prisma.webhookEvent.create({
+          data: {
+            provider: RAZORPAY_PROVIDER,
+            eventId,
+            eventType,
+            payload: parsed as Prisma.InputJsonValue,
+            signature,
+            processed: false,
+          },
+        });
+      } catch (err) {
+        // Concurrent duplicate delivery — unique (provider, eventId)
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          row = await this.prisma.webhookEvent.findUnique({
+            where: { provider_eventId: { provider: RAZORPAY_PROVIDER, eventId } },
+          });
+          if (!row) throw err;
+          existing = row;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     if (existing && !existing.processed) {
       // Re-delivery of unprocessed event — keep original payload
       this.logger.log(`Webhook ${eventId} re-delivered (unprocessed) — re-queue`);
+    }
+
+    if (row.processed) {
+      return { received: true, duplicate: true, processed: true, eventId, eventType };
     }
 
     const sync = process.env.RAZORPAY_WEBHOOK_SYNC === 'true';

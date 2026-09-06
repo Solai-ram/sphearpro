@@ -275,7 +275,10 @@ export class BillingController {
   @Get('refunds/:id')
   @Authenticated('billing.refund')
   @ApiOperation({ summary: 'Get refund' })
-  async findRefundById(@Param('id') id: string) {
-    return this.billingService.findRefundById(id);
+  async findRefundById(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.billingService.findRefundById(id, requireClinicId(user));
   }
 }

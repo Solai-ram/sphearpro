@@ -364,10 +364,16 @@ export class AiService {
     };
   }
 
-  async listRequests(params: { page?: number; limit?: number; type?: string; status?: string }) {
+  async listRequests(params: {
+    clinicId: string;
+    page?: number;
+    limit?: number;
+    type?: string;
+    status?: string;
+  }) {
     const page = params.page || 1;
     const limit = params.limit || 20;
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { clinicId: params.clinicId };
     if (params.type) where.type = params.type;
     if (params.status) where.status = params.status;
 
@@ -388,12 +394,15 @@ export class AiService {
     };
   }
 
-  async reviewOutput(outputId: string, reviewedBy?: string) {
+  async reviewOutput(outputId: string, clinicId: string, reviewedBy?: string) {
     const output = await this.prisma.aiOutput.findUnique({
       where: { id: outputId },
       include: { request: true },
     });
     if (!output) throw new BadRequestException('AI output not found');
+    if (output.request?.clinicId !== clinicId) {
+      throw new BadRequestException('AI output not found');
+    }
     if (output.isReviewed) throw new BadRequestException('Output already reviewed');
 
     const updated = await this.prisma.aiOutput.update({
@@ -423,21 +432,27 @@ export class AiService {
     };
   }
 
-  async usage(days = 30) {
+  async usage(clinicId: string, days = 30) {
     const from = new Date(Date.now() - days * 86400000);
     const [requests, usageRows, pendingReview] = await Promise.all([
       this.prisma.aiRequest.groupBy({
         by: ['type', 'status'],
-        where: { createdAt: { gte: from } },
+        where: { clinicId, createdAt: { gte: from } },
         _count: { _all: true },
       }),
       this.prisma.aiUsage.groupBy({
         by: ['provider', 'requestType'],
-        where: { recordedAt: { gte: from } },
+        where: { clinicId, recordedAt: { gte: from } },
         _sum: { promptTokens: true, completionTokens: true },
         _count: { _all: true },
       }),
-      this.prisma.aiOutput.count({ where: { isReviewed: false, createdAt: { gte: from } } }),
+      this.prisma.aiOutput.count({
+        where: {
+          isReviewed: false,
+          createdAt: { gte: from },
+          request: { clinicId },
+        },
+      }),
     ]);
 
     return {

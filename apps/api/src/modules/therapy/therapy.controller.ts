@@ -326,9 +326,12 @@ export class TherapyController {
       nextPlan?: string;
       aiReviewed?: boolean;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.updateNote(id, { ...body, updatedBy: userId });
+    return this.therapyService.updateNote(id, requireClinicId(user), {
+      ...body,
+      updatedBy: user.sub,
+    });
   }
 
   @Post('summaries/:id/review')
@@ -337,9 +340,12 @@ export class TherapyController {
   async reviewSummary(
     @Param('id') id: string,
     @Body() body: { approved: boolean },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.reviewSummary(id, { approved: body.approved, reviewedBy: userId });
+    return this.therapyService.reviewSummary(id, requireClinicId(user), {
+      approved: body.approved,
+      reviewedBy: user.sub,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -522,9 +528,12 @@ export class TherapyController {
   async addProgress(
     @Param('id') id: string,
     @Body() body: { metric: string; value?: number; note?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.addProgress(id, { ...body, createdBy: userId });
+    return this.therapyService.addProgress(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Get('cases/:id/summary')

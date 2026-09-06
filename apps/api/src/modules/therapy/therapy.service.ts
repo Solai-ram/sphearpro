@@ -492,7 +492,7 @@ export class TherapyService {
     });
     if (!therapyCase) throw new NotFoundException('Therapy case not found');
 
-    let patientPackageId = data.patientPackageId ?? null;
+    const patientPackageId = data.patientPackageId ?? null;
     let totalSessions = data.totalSessions;
     let frequency: SessionFrequency = data.frequency || 'WEEKLY';
     let expiryDate: Date | null = null;
@@ -1220,6 +1220,7 @@ export class TherapyService {
 
   async updateNote(
     noteId: string,
+    clinicId: string,
     data: {
       subjective?: string;
       objective?: string;
@@ -1232,8 +1233,8 @@ export class TherapyService {
       updatedBy?: string;
     },
   ) {
-    const note = await this.prisma.therapyNote.findUnique({
-      where: { id: noteId },
+    const note = await this.prisma.therapyNote.findFirst({
+      where: { id: noteId, session: { clinicId } },
       include: { session: { include: { therapyCase: true } } },
     });
     if (!note) throw new NotFoundException('Therapy note not found');
@@ -1285,10 +1286,10 @@ export class TherapyService {
 
   async addProgress(
     therapyCaseId: string,
+    clinicId: string,
     data: { metric: string; value?: number; note?: string; createdBy?: string },
   ) {
-    const therapyCase = await this.prisma.therapyCase.findUnique({ where: { id: therapyCaseId } });
-    if (!therapyCase) throw new NotFoundException('Therapy case not found');
+    const therapyCase = await this.findCaseById(therapyCaseId, clinicId);
 
     const progress = await this.prisma.therapyProgress.create({
       data: {
@@ -1372,9 +1373,13 @@ export class TherapyService {
     return summary;
   }
 
-  async reviewSummary(summaryId: string, data: { approved: boolean; reviewedBy?: string }) {
-    const summary = await this.prisma.therapyAiSummary.findUnique({
-      where: { id: summaryId },
+  async reviewSummary(
+    summaryId: string,
+    clinicId: string,
+    data: { approved: boolean; reviewedBy?: string },
+  ) {
+    const summary = await this.prisma.therapyAiSummary.findFirst({
+      where: { id: summaryId, therapyCase: { clinicId } },
       include: { therapyCase: true },
     });
     if (!summary) throw new NotFoundException('AI summary not found');

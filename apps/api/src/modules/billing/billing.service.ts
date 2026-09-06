@@ -635,9 +635,9 @@ export class BillingService {
     return refund;
   }
 
-  async findRefundById(id: string) {
-    const refund = await this.prisma.refund.findUnique({
-      where: { id },
+  async findRefundById(id: string, clinicId: string) {
+    const refund = await this.prisma.refund.findFirst({
+      where: { id, invoice: { clinicId } },
       include: {
         invoice: { select: { id: true, invoiceNumber: true, patientId: true } },
         payment: true,

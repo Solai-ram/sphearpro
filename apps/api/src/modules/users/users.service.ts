@@ -155,7 +155,7 @@ export class UsersService {
 
   async findByIdInClinic(id: string, clinicId: string) {
     const user = await this.findById(id);
-    if (!user || (user as any).clinicId !== clinicId) {
+    if (!user || user.clinicId !== clinicId) {
       throw new NotFoundException('User not found');
     }
     return user;
@@ -171,13 +171,10 @@ export class UsersService {
       staffType?: StaffType;
       status?: UserStatus;
     },
-    clinicId?: string,
+    clinicId: string,
   ) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findFirst({ where: { id, clinicId } });
     if (!user) throw new NotFoundException('User not found');
-    if (clinicId && user.clinicId !== clinicId) {
-      throw new NotFoundException('User not found');
-    }
 
     if (data.email && data.email !== user.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
@@ -236,8 +233,8 @@ export class UsersService {
     return this.sanitizeUser(updated);
   }
 
-  async assignRoles(userId: string, roleIds: string[], actorId?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async assignRoles(userId: string, roleIds: string[], actorId: string | undefined, clinicId: string) {
+    const user = await this.prisma.user.findFirst({ where: { id: userId, clinicId } });
     if (!user) throw new NotFoundException('User not found');
 
     if (user.clinicId && user.status !== 'INACTIVE') {
@@ -285,7 +282,8 @@ export class UsersService {
     return this.findById(userId);
   }
 
-  async removeRole(userId: string, roleId: string, actorId?: string) {
+  async removeRole(userId: string, roleId: string, actorId: string | undefined, clinicId: string) {
+    await this.findByIdInClinic(userId, clinicId);
     await this.prisma.userRole.deleteMany({ where: { userId, roleId } });
     await this.auditService.log({
       action: 'PERMISSION_CHANGED',
@@ -297,7 +295,14 @@ export class UsersService {
     });
   }
 
-  async setPermission(userId: string, permissionId: string, granted: boolean, actorId?: string) {
+  async setPermission(
+    userId: string,
+    permissionId: string,
+    granted: boolean,
+    actorId: string | undefined,
+    clinicId: string,
+  ) {
+    await this.findByIdInClinic(userId, clinicId);
     await this.prisma.userPermission.upsert({
       where: { userId_permissionId: { userId, permissionId } },
       update: { granted },
@@ -313,7 +318,13 @@ export class UsersService {
     });
   }
 
-  async removePermission(userId: string, permissionId: string, actorId?: string) {
+  async removePermission(
+    userId: string,
+    permissionId: string,
+    actorId: string | undefined,
+    clinicId: string,
+  ) {
+    await this.findByIdInClinic(userId, clinicId);
     await this.prisma.userPermission.deleteMany({ where: { userId, permissionId } });
     await this.auditService.log({
       action: 'PERMISSION_CHANGED',
@@ -325,8 +336,8 @@ export class UsersService {
     });
   }
 
-  async disable(id: string) {
-    return this.update(id, { status: 'INACTIVE' });
+  async disable(id: string, clinicId: string) {
+    return this.update(id, { status: 'INACTIVE' }, clinicId);
   }
 
   private sanitizeUser(user: any) {

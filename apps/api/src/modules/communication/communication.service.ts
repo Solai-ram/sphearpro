@@ -156,9 +156,15 @@ export class CommunicationService {
     });
   }
 
-  async queueInvoiceNotification(invoiceId: string, options?: { force?: boolean }) {
+  async queueInvoiceNotification(
+    invoiceId: string,
+    options?: { force?: boolean; clinicId?: string },
+  ) {
     const invoice = await this.prisma.invoice.findFirst({
-      where: { id: invoiceId },
+      where: {
+        id: invoiceId,
+        ...(options?.clinicId ? { clinicId: options.clinicId } : {}),
+      },
       include: { patient: { select: { id: true, name: true, phone: true } } },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
@@ -213,15 +219,16 @@ export class CommunicationService {
   }
 
   async findAll(params: {
+    clinicId: string;
     page?: number;
     limit?: number;
     status?: string;
     patientId?: string;
     type?: string;
   }) {
-    const { page = 1, limit = 50, status, patientId, type } = params;
+    const { page = 1, limit = 50, status, patientId, type, clinicId } = params;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: any = { clinicId };
     if (status) where.status = status;
     if (patientId) where.patientId = patientId;
     if (type) where.type = type;
@@ -244,9 +251,9 @@ export class CommunicationService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async findById(id: string) {
-    const message = await this.prisma.communicationMessage.findUnique({
-      where: { id },
+  async findById(id: string, clinicId: string) {
+    const message = await this.prisma.communicationMessage.findFirst({
+      where: { id, clinicId },
       include: {
         patient: { select: { id: true, name: true, patientNumber: true } },
         appointment: { select: { id: true, appointmentAt: true } },
@@ -257,8 +264,10 @@ export class CommunicationService {
     return message;
   }
 
-  async resend(id: string) {
-    const message = await this.prisma.communicationMessage.findUnique({ where: { id } });
+  async resend(id: string, clinicId: string) {
+    const message = await this.prisma.communicationMessage.findFirst({
+      where: { id, clinicId },
+    });
     if (!message) throw new NotFoundException('Communication message not found');
     await this.whatsappQueue.add('send-manual', { messageId: message.id }, {
       jobId: `manual-${id}-${Date.now()}`,
@@ -269,15 +278,35 @@ export class CommunicationService {
     return { message: 'Message queued for resend' };
   }
 
-  async listTemplates() {
-    return this.prisma.messageTemplate.findMany({ orderBy: { name: 'asc' } });
+  async listTemplates(clinicId: string) {
+    return this.prisma.messageTemplate.findMany({
+      where: { clinicId },
+      orderBy: { name: 'asc' },
+    });
   }
 
-  async upsertTemplate(data: { name: string; type: MessageType; language?: string; body: string; isActive?: boolean }, actorId?: string) {
+  async upsertTemplate(
+    data: {
+      name: string;
+      type: MessageType;
+      language?: string;
+      body: string;
+      isActive?: boolean;
+      clinicId: string;
+    },
+    actorId?: string,
+  ) {
     const template = await this.prisma.messageTemplate.upsert({
-      where: { name: data.name },
+      where: { clinicId_name: { clinicId: data.clinicId, name: data.name } },
       update: { type: data.type, language: data.language || 'en', body: data.body, isActive: data.isActive ?? true },
-      create: { name: data.name, type: data.type, language: data.language || 'en', body: data.body, isActive: data.isActive ?? true },
+      create: {
+        clinicId: data.clinicId,
+        name: data.name,
+        type: data.type,
+        language: data.language || 'en',
+        body: data.body,
+        isActive: data.isActive ?? true,
+      },
     });
     await this.auditService.log({
       actorId,

@@ -31,7 +31,8 @@ const createOpCaseSchema = z.object({
   }).optional(),
 });
 
-type CreateOpCaseForm = z.infer<typeof createOpCaseSchema>;
+type CreateOpCaseFormInput = z.input<typeof createOpCaseSchema>;
+type CreateOpCaseForm = z.output<typeof createOpCaseSchema>;
 
 export function ClinicalCreatePage() {
   const navigate = useNavigate();
@@ -55,8 +56,9 @@ export function ClinicalCreatePage() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<CreateOpCaseForm>({
-    resolver: zodResolver(createOpCaseSchema),
+  } = useForm<CreateOpCaseFormInput, unknown, CreateOpCaseForm>({
+    // zodResolver input/output diverge when schemas use .pipe(z.coerce…)
+    resolver: zodResolver(createOpCaseSchema) as any,
     defaultValues: {
       paymentMethod: 'CASH',
       vitals: {},

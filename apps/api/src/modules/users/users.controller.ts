@@ -97,8 +97,8 @@ export class UsersController {
   @Delete(':id')
   @Authenticated('users.disable')
   @ApiOperation({ summary: 'Disable user (soft delete)' })
-  async disable(@Param('id') id: string) {
-    await this.usersService.disable(id);
+  async disable(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    await this.usersService.disable(id, requireClinicId(user));
     return { message: 'User disabled' };
   }
 
@@ -108,9 +108,9 @@ export class UsersController {
   async assignRoles(
     @Param('id') id: string,
     @Body() body: { roleIds: string[] },
-    @CurrentUser('sub') actorId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.usersService.assignRoles(id, body.roleIds, actorId);
+    return this.usersService.assignRoles(id, body.roleIds, user.sub, requireClinicId(user));
   }
 
   @Delete(':id/roles/:roleId')
@@ -119,9 +119,9 @@ export class UsersController {
   async removeRole(
     @Param('id') id: string,
     @Param('roleId') roleId: string,
-    @CurrentUser('sub') actorId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    await this.usersService.removeRole(id, roleId, actorId);
+    await this.usersService.removeRole(id, roleId, user.sub, requireClinicId(user));
     return { message: 'Role removed' };
   }
 
@@ -131,9 +131,15 @@ export class UsersController {
   async setPermission(
     @Param('id') id: string,
     @Body() body: { permissionId: string; granted: boolean },
-    @CurrentUser('sub') actorId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.usersService.setPermission(id, body.permissionId, body.granted, actorId);
+    return this.usersService.setPermission(
+      id,
+      body.permissionId,
+      body.granted,
+      user.sub,
+      requireClinicId(user),
+    );
   }
 
   @Delete(':id/permissions/:permissionId')
@@ -142,9 +148,9 @@ export class UsersController {
   async removePermission(
     @Param('id') id: string,
     @Param('permissionId') permissionId: string,
-    @CurrentUser('sub') actorId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    await this.usersService.removePermission(id, permissionId, actorId);
+    await this.usersService.removePermission(id, permissionId, user.sub, requireClinicId(user));
     return { message: 'Permission removed' };
   }
 }

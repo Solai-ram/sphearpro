@@ -84,12 +84,12 @@ export function PlatformSubscriptionDetailPage() {
         {[
           ['Amount', formatPaise(data.amountPaise, data.currency)],
           ['Period end', formatDate(data.currentPeriodEnd)],
-          ['Provider', data.provider],
+          ['Provider', String(data.provider ?? '—')],
           ['Seats', `${data.plan?.maxStaffUsers ?? '—'} staff + ${data.plan?.maxAdminUsers ?? '—'} admin`],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-4">
             <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
-            <dd className="mt-2 text-sm font-medium text-slate-100">{value}</dd>
+            <dd className="mt-2 text-sm font-medium text-slate-100">{String(value)}</dd>
           </div>
         ))}
       </dl>
@@ -101,24 +101,24 @@ export function PlatformSubscriptionDetailPage() {
       <section className="mt-8 rounded-2xl border border-slate-700/80 bg-slate-900/80 p-5">
         <h3 className="text-sm font-semibold text-white">Actions</h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          {[
-            ['suspend', 'Suspend', { reason: reason || 'platform suspend' }, 'Suspended'],
-            ['reactivate', 'Reactivate', { reason: reason || 'platform reactivate' }, 'Reactivated'],
+          {(
             [
-              'offline-payment',
-              'Offline payment',
-              { note: reason || 'Offline payment', amountPaise: data.amountPaise },
-              'Offline payment recorded',
-            ],
-          ].map(([path, label, body, ok]) => (
+              ['suspend', 'Suspend', { reason: reason || 'platform suspend' }, 'Suspended'],
+              ['reactivate', 'Reactivate', { reason: reason || 'platform reactivate' }, 'Reactivated'],
+              [
+                'offline-payment',
+                'Offline payment',
+                { note: reason || 'Offline payment', amountPaise: data.amountPaise },
+                'Offline payment recorded',
+              ],
+            ] as Array<[string, string, Record<string, unknown>, string]>
+          ).map(([path, label, body, ok]) => (
             <button
-              key={String(path)}
+              key={path}
               type="button"
               className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
               disabled={busy}
-              onClick={() =>
-                void action(String(path), body as Record<string, unknown>, String(ok))
-              }
+              onClick={() => void action(path, body, ok)}
             >
               {label}
             </button>
