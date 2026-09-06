@@ -156,9 +156,12 @@ export class ClinicalController {
       paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
       paymentReference?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.clinicalService.invoiceOpCase(id, { ...body, createdBy: userId });
+    return this.clinicalService.invoiceOpCase(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   // ---------------------------------------------------------------------------

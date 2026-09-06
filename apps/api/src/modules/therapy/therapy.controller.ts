@@ -104,8 +104,9 @@ export class TherapyController {
       validityDays?: number;
       isActive?: boolean;
     },
+    @CurrentUser() user: { clinicId?: string },
   ) {
-    return this.therapyService.updatePackage(id, body);
+    return this.therapyService.updatePackage(id, requireClinicId(user), body);
   }
 
   // ---------------------------------------------------------------------------
@@ -115,8 +116,10 @@ export class TherapyController {
   @Get('doctor/sessions')
   @Authenticated('therapy.session.view')
   @ApiOperation({ summary: 'List upcoming therapy sessions assigned to the logged-in doctor' })
-  async listMyDoctorSessions(@CurrentUser('sub') userId: string) {
-    return this.therapyService.listMyDoctorSessions(userId);
+  async listMyDoctorSessions(
+    @CurrentUser() user: { sub?: string; clinicId?: string },
+  ) {
+    return this.therapyService.listMyDoctorSessions(user.sub!, requireClinicId(user));
   }
 
   @Get('doctor/sessions/:id')
@@ -124,9 +127,9 @@ export class TherapyController {
   @ApiOperation({ summary: 'Doctor workspace for one assigned session (current + prior notes)' })
   async getDoctorSessionWorkspace(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.getDoctorSessionWorkspace(id, userId);
+    return this.therapyService.getDoctorSessionWorkspace(id, user.sub!, requireClinicId(user));
   }
 
   @Post('doctor/sessions/:id/outcome')
@@ -147,9 +150,12 @@ export class TherapyController {
       nextPlan?: string;
       unitPrice?: number;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.recordDoctorSessionOutcome(id, { ...body, createdBy: userId });
+    return this.therapyService.recordDoctorSessionOutcome(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Get('sessions')
@@ -165,6 +171,7 @@ export class TherapyController {
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
   async findAllSessions(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('therapyCaseId') therapyCaseId?: string,
@@ -185,6 +192,7 @@ export class TherapyController {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       search,
+      clinicId: requireClinicId(user),
     });
   }
 
@@ -195,21 +203,24 @@ export class TherapyController {
   async assignSession(
     @Param('id') id: string,
     @Body() body: { doctorId?: string; therapistId?: string; scheduledAt?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     const doctorId = body.doctorId || body.therapistId;
     if (!doctorId) throw new BadRequestException('doctorId is required');
-    return this.therapyService.assignSession(id, {
+    return this.therapyService.assignSession(id, requireClinicId(user), {
       doctorId,
       scheduledAt: body.scheduledAt,
-      createdBy: userId,
+      createdBy: user.sub,
     });
   }
 
   @Get('sessions/:id')
   @Authenticated('therapy.session.view')
   @ApiOperation({ summary: 'Get therapy session' })
-  async findSessionById(@Param('id') id: string) {
+  async findSessionById(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
     return this.therapyService.findSessionById(id, requireClinicId(user));
   }
 
@@ -219,9 +230,12 @@ export class TherapyController {
   async rescheduleSession(
     @Param('id') id: string,
     @Body() body: { scheduledAt: string; note?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.rescheduleSession(id, { ...body, createdBy: userId });
+    return this.therapyService.rescheduleSession(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Patch('sessions/:id/attendance')
@@ -233,15 +247,21 @@ export class TherapyController {
       status: 'PRESENT' | 'ABSENT' | 'CANCELLED' | 'RESCHEDULED' | 'LATE';
       unitPrice?: number;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.markAttendance(id, { ...body, createdBy: userId });
+    return this.therapyService.markAttendance(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Get('sessions/:id/notes')
   @Authenticated('therapy.note.create')
   @ApiOperation({ summary: 'List notes for a session' })
-  async getSessionNotes(@Param('id') id: string) {
+  async getSessionNotes(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
     const session = await this.therapyService.findSessionById(id, requireClinicId(user));
     return session.notes;
   }
@@ -262,9 +282,12 @@ export class TherapyController {
       nextPlan?: string;
       isAiDraft?: boolean;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.addNote(id, { ...body, createdBy: userId });
+    return this.therapyService.addNote(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Post('sessions/:id/voice-note')
@@ -276,15 +299,15 @@ export class TherapyController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Query('languageCode') languageCode: string | undefined,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     if (!file) throw new BadRequestException('Audio file is required');
-    return this.therapyService.addVoiceNote(id, {
+    return this.therapyService.addVoiceNote(id, requireClinicId(user), {
       buffer: file.buffer,
       mimeType: file.mimetype,
       fileName: file.originalname,
       languageCode,
-      createdBy: userId,
+      createdBy: user.sub,
     });
   }
 
@@ -326,8 +349,11 @@ export class TherapyController {
   @Get('patients/:patientId/packages')
   @Authenticated('therapy.package.view')
   @ApiOperation({ summary: 'List packages assigned to a patient' })
-  async listPatientPackages(@Param('patientId') patientId: string) {
-    return this.therapyService.listPatientPackages(patientId);
+  async listPatientPackages(
+    @Param('patientId') patientId: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.therapyService.listPatientPackages(patientId, requireClinicId(user));
   }
 
   @Get('patients/:patientId/cases')
@@ -335,6 +361,7 @@ export class TherapyController {
   @ApiOperation({ summary: 'List therapy cases for a patient' })
   async findCasesByPatient(
     @Param('patientId') patientId: string,
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
@@ -342,6 +369,7 @@ export class TherapyController {
       patientId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
+      clinicId: requireClinicId(user),
     });
   }
 
@@ -359,13 +387,13 @@ export class TherapyController {
   @ApiQuery({ name: 'doctorId', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
   async findAllCases(
+    @CurrentUser() user: { sub?: string; clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
     @Query('therapistId') therapistId?: string,
     @Query('doctorId') doctorId?: string,
     @Query('status') status?: string,
-    @CurrentUser('sub') userId?: string,
   ) {
     return this.therapyService.findAllCases({
       page: page ? Number(page) : 1,
@@ -374,7 +402,8 @@ export class TherapyController {
       therapistId,
       doctorId,
       status,
-      requestingUserId: userId,
+      requestingUserId: user.sub,
+      clinicId: requireClinicId(user),
     });
   }
 
@@ -390,16 +419,23 @@ export class TherapyController {
       goals?: unknown;
       opCaseId?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.createCase({ ...body, createdBy: userId });
+    return this.therapyService.createCase({
+      ...body,
+      createdBy: user.sub,
+      clinicId: requireClinicId(user),
+    });
   }
 
   @Get('cases/:id')
   @Authenticated('therapy.case.view')
   @ApiOperation({ summary: 'Get therapy case' })
   @ApiParam({ name: 'id', description: 'Therapy Case ID' })
-  async findCaseById(@Param('id') id: string) {
+  async findCaseById(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
     return this.therapyService.findCaseById(id, requireClinicId(user));
   }
 
@@ -414,9 +450,12 @@ export class TherapyController {
       goals?: unknown;
       status?: 'ACTIVE' | 'COMPLETED' | 'DISCONTINUED';
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.updateCase(id, { ...body, updatedBy: userId });
+    return this.therapyService.updateCase(id, requireClinicId(user), {
+      ...body,
+      updatedBy: user.sub,
+    });
   }
 
   @Post('cases/:id/packages')
@@ -425,9 +464,12 @@ export class TherapyController {
   async assignPackage(
     @Param('id') id: string,
     @Body() body: { packageId: string; startDate?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.assignPackage(id, { ...body, createdBy: userId });
+    return this.therapyService.assignPackage(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Post('cases/:id/sessions/manual')
@@ -436,9 +478,12 @@ export class TherapyController {
   async createManualSession(
     @Param('id') id: string,
     @Body() body: { scheduledAt: string; doctorId?: string; patientPackageId?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.createManualSession(id, { ...body, createdBy: userId });
+    return this.therapyService.createManualSession(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Post('cases/:id/sessions')
@@ -453,16 +498,22 @@ export class TherapyController {
       startDate?: string;
       therapistId?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.generateSessionsForCase(id, { ...body, createdBy: userId });
+    return this.therapyService.generateSessionsForCase(id, requireClinicId(user), {
+      ...body,
+      createdBy: user.sub,
+    });
   }
 
   @Get('cases/:id/progress')
   @Authenticated('therapy.progress.record')
   @ApiOperation({ summary: 'List progress records' })
-  async listProgress(@Param('id') id: string) {
-    return this.therapyService.listProgress(id);
+  async listProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.therapyService.listProgress(id, requireClinicId(user));
   }
 
   @Post('cases/:id/progress')
@@ -479,7 +530,10 @@ export class TherapyController {
   @Get('cases/:id/summary')
   @Authenticated('therapy.case.view')
   @ApiOperation({ summary: 'List AI summaries for a case' })
-  async listSummaries(@Param('id') id: string) {
+  async listSummaries(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
     const therapyCase = await this.therapyService.findCaseById(id, requireClinicId(user));
     return therapyCase.aiSummaries;
   }
@@ -489,8 +543,8 @@ export class TherapyController {
   @ApiOperation({ summary: 'Generate AI therapy summary draft (requires human review)' })
   async generateSummary(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.therapyService.generateSummary(id, userId);
+    return this.therapyService.generateSummary(id, requireClinicId(user), user.sub);
   }
 }

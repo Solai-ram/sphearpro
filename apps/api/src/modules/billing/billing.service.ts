@@ -408,7 +408,7 @@ export class BillingService {
     return payment;
   }
 
-  async invoicePdf(id: string, actorId?: string) {
+  async invoicePdf(id: string, clinicId: string, actorId?: string) {
     const invoice = await this.findInvoiceById(id, clinicId);
     const clinic = await this.clinicSettings();
     const paid = money(invoice.paidAmount);
@@ -484,7 +484,7 @@ export class BillingService {
     };
   }
 
-  async paymentReceiptPdf(id: string, actorId?: string) {
+  async paymentReceiptPdf(id: string, clinicId: string, actorId?: string) {
     const payment = await this.findPaymentById(id, clinicId);
     const clinic = await this.clinicSettings();
     const lines = [
@@ -565,6 +565,7 @@ export class BillingService {
 
   async createRefund(data: {
     invoiceId: string;
+    clinicId: string;
     paymentId?: string;
     amount: number;
     reason?: string;
@@ -572,7 +573,7 @@ export class BillingService {
   }) {
     if (data.amount <= 0) throw new BadRequestException('Refund amount must be greater than 0');
 
-    const invoice = await this.findInvoiceById(data.invoiceId);
+    const invoice = await this.findInvoiceById(data.invoiceId, data.clinicId);
     if (!['PAID', 'PARTIALLY_PAID'].includes(invoice.status)) {
       throw new BadRequestException('Refunds are only allowed on paid or partially paid invoices');
     }
@@ -583,7 +584,7 @@ export class BillingService {
     }
 
     if (data.paymentId) {
-      const payment = await this.findPaymentById(data.paymentId);
+      const payment = await this.findPaymentById(data.paymentId, data.clinicId);
       if (payment.invoiceId !== invoice.id) {
         throw new BadRequestException('Payment does not belong to this invoice');
       }
@@ -652,7 +653,7 @@ export class BillingService {
     const range = ranged
       ? resolveRange(params.period || 'custom', params.startDate, params.endDate)
       : null;
-    const where: Prisma.PaymentWhereInput = { status: 'SUCCESS' };
+    const where: Prisma.PaymentWhereInput = { clinicId: params.clinicId, status: 'SUCCESS' };
     if (range) {
       where.paidAt = { gte: range.from, lte: range.to };
     }
@@ -667,6 +668,7 @@ export class BillingService {
     });
     const refunds = await this.prisma.refund.findMany({
       where: {
+        invoice: { clinicId: params.clinicId },
         status: 'PROCESSED',
         ...(range
           ? { refundedAt: { gte: range.from, lte: range.to } }
@@ -721,6 +723,7 @@ export class BillingService {
     const range = resolveRange(params.period || 'daily', params.startDate, params.endDate);
     const invoices = await this.prisma.invoice.findMany({
       where: {
+        clinicId: params.clinicId,
         issueDate: { gte: range.from, lte: range.to },
       },
       orderBy: { issueDate: 'desc' },
@@ -769,7 +772,7 @@ export class BillingService {
 
   async outstandingReport(clinicId: string) {
     const invoices = await this.prisma.invoice.findMany({
-      where: { status: { in: ['PENDING', 'PARTIALLY_PAID'] } },
+      where: { clinicId, status: { in: ['PENDING', 'PARTIALLY_PAID'] } },
       include: {
         patient: { select: { id: true, name: true, patientNumber: true } },
         payments: { where: { status: 'SUCCESS' }, select: { amount: true } },

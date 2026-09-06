@@ -154,6 +154,7 @@ export class InventoryService {
     categoryId?: string;
     activeOnly?: boolean;
     lowStockOnly?: boolean;
+    clinicId: string;
   }) {
     const { page = 1, limit = 20, search, categoryId, activeOnly = true } = params;
     const skip = (page - 1) * limit;
@@ -195,7 +196,6 @@ export class InventoryService {
   async findProductById(id: string, clinicId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, clinicId },
-      where: { id },
       include: { category: true },
     });
     if (!product) throw new NotFoundException('Product not found');
@@ -214,6 +214,7 @@ export class InventoryService {
       sku: string;
       name: string;
       categoryId: string;
+      clinicId: string;
       description?: string;
       unitPrice: number;
       taxRate?: number;
@@ -464,17 +465,20 @@ export class InventoryService {
     unitPrice?: number;
     discount?: number;
     createdBy?: string;
+    clinicId: string;
   }) {
     if (!Number.isInteger(data.quantity) || data.quantity < 1) {
       throw new BadRequestException('quantity must be a positive integer');
     }
 
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: data.patientId, deletedAt: null },
+    const patient = await this.prisma.patient.findFirst({
+      where: { id: data.patientId, clinicId: data.clinicId, deletedAt: null },
     });
     if (!patient) throw new NotFoundException('Patient not found');
 
-    const product = await this.prisma.product.findUnique({ where: { id: data.productId } });
+    const product = await this.prisma.product.findFirst({
+      where: { id: data.productId, clinicId: data.clinicId },
+    });
     if (!product) throw new NotFoundException('Product not found');
     if (!product.isActive) throw new BadRequestException('Product is inactive');
 
@@ -491,6 +495,7 @@ export class InventoryService {
     const totalPrice = roundMoney(afterDiscount + tax);
 
     const invoice = await this.billingService.createInvoice({
+      clinicId: data.clinicId,
       patientId: patient.id,
       notes: `Product sale: ${product.name}`,
       createdBy: data.createdBy,
@@ -514,6 +519,7 @@ export class InventoryService {
 
     const sale = await this.prisma.productSale.create({
       data: {
+        clinicId: data.clinicId,
         patientId: patient.id,
         productId: product.id,
         quantity: data.quantity,
@@ -529,6 +535,7 @@ export class InventoryService {
     });
 
     const stock = await this.recordStockMovement({
+      clinicId: data.clinicId,
       productId: product.id,
       type: 'SALE',
       quantity: data.quantity,

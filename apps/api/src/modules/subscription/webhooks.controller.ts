@@ -7,9 +7,9 @@ import {
   Logger,
   BadRequestException,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
-import { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { RazorpayWebhookService } from './razorpay-webhook.service';
 

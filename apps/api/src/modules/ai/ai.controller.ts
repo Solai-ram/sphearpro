@@ -103,7 +103,11 @@ export class AiController {
       inputRef?: string;
     },
   ) {
-    return this.aiService.summarizeTherapy({ ...body, createdBy: userId });
+    return this.aiService.summarizeTherapy({
+      ...body,
+      createdBy: user.sub,
+      clinicId: requireClinicId(user),
+    });
   }
 
   @Post('note-draft')
@@ -130,6 +134,6 @@ export class AiController {
     @Param('id') id: string,
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.aiService.reviewOutput(id, userId);
+    return this.aiService.reviewOutput(id, user.sub);
   }
 }

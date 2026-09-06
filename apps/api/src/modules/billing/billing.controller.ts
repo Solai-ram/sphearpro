@@ -28,11 +28,17 @@ export class BillingController {
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   async revenueReport(
+    @CurrentUser() user: { clinicId?: string },
     @Query('period') period?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.billingService.revenueReport({ period, startDate, endDate });
+    return this.billingService.revenueReport({
+      clinicId: requireClinicId(user),
+      period,
+      startDate,
+      endDate,
+    });
   }
 
   @Get('reports/billing')
@@ -42,25 +48,34 @@ export class BillingController {
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   async billingReport(
+    @CurrentUser() user: { clinicId?: string },
     @Query('period') period?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.billingService.billingReport({ period, startDate, endDate });
+    return this.billingService.billingReport({
+      clinicId: requireClinicId(user),
+      period,
+      startDate,
+      endDate,
+    });
   }
 
   @Get('reports/outstanding')
   @Authenticated('billing.invoice.view')
   @ApiOperation({ summary: 'Outstanding invoices report' })
-  async outstandingReport() {
-    return this.billingService.outstandingReport();
+  async outstandingReport(@CurrentUser() user: { clinicId?: string }) {
+    return this.billingService.outstandingReport(requireClinicId(user));
   }
 
   @Get('patients/:patientId/outstanding')
   @Authenticated('billing.invoice.view')
   @ApiOperation({ summary: 'Outstanding balance for a patient' })
-  async patientOutstanding(@Param('patientId') patientId: string) {
-    return this.billingService.patientOutstanding(patientId);
+  async patientOutstanding(
+    @Param('patientId') patientId: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.billingService.patientOutstanding(patientId, requireClinicId(user));
   }
 
   @Get('invoices')
@@ -136,10 +151,14 @@ export class BillingController {
   @ApiOperation({ summary: 'Download invoice PDF' })
   async invoicePdf(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
     @Res() res: Response,
   ) {
-    const { fileName, buffer } = await this.billingService.invoicePdf(id, userId);
+    const { fileName, buffer } = await this.billingService.invoicePdf(
+      id,
+      requireClinicId(user),
+      user.sub,
+    );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.send(buffer);
@@ -151,9 +170,12 @@ export class BillingController {
   async updateInvoice(
     @Param('id') id: string,
     @Body() body: { notes?: string; dueDate?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.billingService.updateInvoice(id, { ...body, updatedBy: userId });
+    return this.billingService.updateInvoice(id, requireClinicId(user), {
+      ...body,
+      updatedBy: user.sub,
+    });
   }
 
   @Post('invoices/:id/cancel')
@@ -161,9 +183,9 @@ export class BillingController {
   @ApiOperation({ summary: 'Cancel a pending invoice' })
   async cancelInvoice(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.billingService.cancelInvoice(id, userId);
+    return this.billingService.cancelInvoice(id, requireClinicId(user), user.sub);
   }
 
   @Get('payments')
@@ -174,6 +196,7 @@ export class BillingController {
   @ApiQuery({ name: 'patientId', required: false, type: String })
   @ApiQuery({ name: 'invoiceId', required: false, type: String })
   async findAllPayments(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('patientId') patientId?: string,
@@ -186,6 +209,7 @@ export class BillingController {
       patientId,
       invoiceId,
       method,
+      clinicId: requireClinicId(user),
     });
   }
 
@@ -207,8 +231,8 @@ export class BillingController {
   @Get('payments/:id')
   @Authenticated('billing.payment.view')
   @ApiOperation({ summary: 'Get payment' })
-  async findPaymentById(@Param('id') id: string) {
-    return this.billingService.findPaymentById(id);
+  async findPaymentById(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.billingService.findPaymentById(id, requireClinicId(user));
   }
 
   @Get('payments/:id/receipt')
@@ -216,10 +240,14 @@ export class BillingController {
   @ApiOperation({ summary: 'Download payment receipt PDF' })
   async paymentReceipt(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
     @Res() res: Response,
   ) {
-    const { fileName, buffer } = await this.billingService.paymentReceiptPdf(id, userId);
+    const { fileName, buffer } = await this.billingService.paymentReceiptPdf(
+      id,
+      requireClinicId(user),
+      user.sub,
+    );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.send(buffer);
@@ -235,9 +263,13 @@ export class BillingController {
       amount: number;
       reason?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.billingService.createRefund({ ...body, createdBy: userId });
+    return this.billingService.createRefund({
+      ...body,
+      createdBy: user.sub,
+      clinicId: requireClinicId(user),
+    });
   }
 
   @Get('refunds/:id')

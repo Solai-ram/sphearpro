@@ -70,8 +70,9 @@ COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 # Production deps + Prisma CLI (needed for `migrate deploy` in release)
-RUN npm ci --omit=dev && \
-    npm install prisma@5.10.0 --no-save --workspace-root && \
+# --ignore-scripts: husky prepare fails in Alpine (devDependency not installed)
+RUN npm ci --omit=dev --ignore-scripts && \
+    npm install prisma@5.10.0 --no-save --workspace-root --ignore-scripts && \
     npm cache clean --force
 
 COPY --from=builder /app/apps/api/dist ./dist

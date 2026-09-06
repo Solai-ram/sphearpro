@@ -16,8 +16,8 @@ export class InventoryController {
   @Get('categories')
   @Authenticated('inventory.product.view')
   @ApiOperation({ summary: 'List product categories' })
-  listCategories() {
-    return this.inventoryService.listCategories();
+  listCategories(@CurrentUser() user: { clinicId?: string }) {
+    return this.inventoryService.listCategories(requireClinicId(user));
   }
 
   @Post('categories')
@@ -25,17 +25,23 @@ export class InventoryController {
   @ApiOperation({ summary: 'Create product category' })
   createCategory(
     @Body() body: { name: string; parentId?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.createCategory(body, userId);
+    return this.inventoryService.createCategory(
+      { ...body, clinicId: requireClinicId(user) },
+      user.sub,
+    );
   }
 
   @Get('suppliers')
   @Authenticated('inventory.product.view')
   @ApiOperation({ summary: 'List suppliers' })
   @ApiQuery({ name: 'includeInactive', required: false })
-  listSuppliers(@Query('includeInactive') includeInactive?: string) {
-    return this.inventoryService.listSuppliers(includeInactive === 'true');
+  listSuppliers(
+    @CurrentUser() user: { clinicId?: string },
+    @Query('includeInactive') includeInactive?: string,
+  ) {
+    return this.inventoryService.listSuppliers(requireClinicId(user), includeInactive === 'true');
   }
 
   @Post('suppliers')
@@ -43,9 +49,12 @@ export class InventoryController {
   @ApiOperation({ summary: 'Create supplier' })
   createSupplier(
     @Body() body: { name: string; contact?: string; email?: string; phone?: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.createSupplier(body, userId);
+    return this.inventoryService.createSupplier(
+      { ...body, clinicId: requireClinicId(user) },
+      user.sub,
+    );
   }
 
   @Patch('suppliers/:id')
@@ -97,6 +106,7 @@ export class InventoryController {
   @ApiQuery({ name: 'activeOnly', required: false })
   @ApiQuery({ name: 'lowStockOnly', required: false })
   listProducts(
+    @CurrentUser() user: { clinicId?: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
@@ -111,6 +121,7 @@ export class InventoryController {
       categoryId,
       activeOnly: activeOnly === 'false' ? false : true,
       lowStockOnly: lowStockOnly === 'true',
+      clinicId: requireClinicId(user),
     });
   }
 
@@ -135,17 +146,20 @@ export class InventoryController {
       warranty?: string;
       colour?: string;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.createProduct(body, userId);
+    return this.inventoryService.createProduct(
+      { ...body, clinicId: requireClinicId(user) },
+      user.sub,
+    );
   }
 
   @Get('products/:id')
   @Authenticated('inventory.product.view')
   @ApiParam({ name: 'id' })
   @ApiOperation({ summary: 'Get product with stock and recent movements' })
-  getProduct(@Param('id') id: string) {
-    return this.inventoryService.findProductById(id);
+  getProduct(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.inventoryService.findProductById(id, requireClinicId(user));
   }
 
   @Patch('products/:id')
@@ -322,8 +336,12 @@ export class InventoryController {
       unitPrice?: number;
       discount?: number;
     },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    return this.inventoryService.sellProduct({ ...body, createdBy: userId });
+    return this.inventoryService.sellProduct({
+      ...body,
+      createdBy: user.sub,
+      clinicId: requireClinicId(user),
+    });
   }
 }

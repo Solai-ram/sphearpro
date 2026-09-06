@@ -487,7 +487,9 @@ export class TherapyService {
       createdBy?: string;
     },
   ) {
-    const therapyCase = await this.prisma.therapyCase.findUnique({ where: { id: therapyCaseId } });
+    const therapyCase = await this.prisma.therapyCase.findFirst({
+      where: { id: therapyCaseId, clinicId },
+    });
     if (!therapyCase) throw new NotFoundException('Therapy case not found');
 
     let patientPackageId = data.patientPackageId ?? null;
@@ -496,8 +498,8 @@ export class TherapyService {
     let expiryDate: Date | null = null;
 
     if (patientPackageId) {
-      const pkg = await this.prisma.patientPackage.findUnique({
-        where: { id: patientPackageId },
+      const pkg = await this.prisma.patientPackage.findFirst({
+        where: { id: patientPackageId, clinicId },
         include: { package: true },
       });
       if (!pkg) throw new NotFoundException('Patient package not found');
@@ -511,6 +513,7 @@ export class TherapyService {
     }
 
     const sessions = await this.generateSessions({
+      clinicId,
       therapyCaseId,
       therapistId: data.therapistId || therapyCase.therapistId,
       patientPackageId,
@@ -899,8 +902,8 @@ export class TherapyService {
    * COMPLETED → attendance PRESENT + required SOAP note.
    * CANCELLED / ABSENT → attendance only, no note.
    */
-  async listMyDoctorSessions(userId: string) {
-    const doctor = await this.requireStaffForUser(userId);
+  async listMyDoctorSessions(userId: string, clinicId: string) {
+    const doctor = await this.requireStaffForUser(userId, clinicId);
     if (doctor.staffType !== 'DOCTOR' && doctor.staffType !== 'ADMIN') {
       throw new BadRequestException('Only doctors can open the doctor session queue');
     }
@@ -911,6 +914,7 @@ export class TherapyService {
 
     return this.prisma.therapySession.findMany({
       where: {
+        clinicId,
         doctorId: doctor.id,
         status: 'SCHEDULED',
         scheduledAt: { gte: start },
@@ -920,8 +924,8 @@ export class TherapyService {
     });
   }
 
-  async getDoctorSessionWorkspace(sessionId: string, userId: string) {
-    const doctor = await this.requireStaffForUser(userId);
+  async getDoctorSessionWorkspace(sessionId: string, userId: string, clinicId: string) {
+    const doctor = await this.requireStaffForUser(userId, clinicId);
     const session = await this.findSessionById(sessionId, clinicId);
 
     if (session.doctorId !== doctor.id) {
@@ -931,7 +935,7 @@ export class TherapyService {
       }
     }
 
-    const therapyCase = await this.findCaseById(session.therapyCaseId);
+    const therapyCase = await this.findCaseById(session.therapyCaseId, clinicId);
     const priorNotes = (therapyCase.sessions || [])
       .flatMap((s: any) =>
         (s.notes || []).map((note: any) => ({
@@ -964,6 +968,7 @@ export class TherapyService {
 
   async recordDoctorSessionOutcome(
     sessionId: string,
+    clinicId: string,
     data: {
       outcome: 'COMPLETED' | 'CANCELLED' | 'ABSENT';
       subjective?: string;
@@ -978,7 +983,7 @@ export class TherapyService {
     },
   ) {
     if (!data.createdBy) throw new BadRequestException('Authenticated user required');
-    const doctor = await this.requireStaffForUser(data.createdBy);
+    const doctor = await this.requireStaffForUser(data.createdBy, clinicId);
     const session = await this.findSessionById(sessionId, clinicId);
 
     if (session.doctorId !== doctor.id) {
@@ -1013,7 +1018,7 @@ export class TherapyService {
           ? 'ABSENT'
           : 'CANCELLED';
 
-    const updated = await this.markAttendance(sessionId, {
+    await this.markAttendance(sessionId, clinicId, {
       status: attendanceStatus,
       unitPrice: data.unitPrice,
       createdBy: data.createdBy,
@@ -1021,7 +1026,7 @@ export class TherapyService {
 
     let note = null;
     if (data.outcome === 'COMPLETED') {
-      note = await this.addNote(sessionId, {
+      note = await this.addNote(sessionId, clinicId, {
         subjective: data.subjective,
         objective: data.objective,
         activities: data.activities,
@@ -1048,6 +1053,7 @@ export class TherapyService {
 
   async addNote(
     sessionId: string,
+    clinicId: string,
     data: {
       therapistId?: string;
       subjective?: string;
@@ -1155,6 +1161,7 @@ export class TherapyService {
 
   async addVoiceNote(
     sessionId: string,
+    clinicId: string,
     data: {
       buffer: Buffer;
       mimeType: string;
@@ -1163,9 +1170,9 @@ export class TherapyService {
       createdBy?: string;
     },
   ) {
-    await this.findSessionById(sessionId, clinicId);
+    const session = await this.findSessionById(sessionId, clinicId);
     const transcript = await this.aiService.transcribeAudio({
-        clinicId: session.clinicId || clinicId,
+      clinicId: session.clinicId || clinicId,
       buffer: data.buffer,
       mimeType: data.mimeType,
       fileName: data.fileName,
@@ -1183,6 +1190,7 @@ export class TherapyService {
         transcript: transcript.text,
         createdBy: data.createdBy,
         inputRef: sessionId,
+        clinicId: session.clinicId || clinicId,
       });
       soap = {
         ...drafted.soap,
@@ -1194,7 +1202,7 @@ export class TherapyService {
       // Keep the raw transcript if summarization is unavailable.
     }
 
-    const note = await this.addNote(sessionId, {
+    const note = await this.addNote(sessionId, clinicId, {
       ...soap,
       isAiDraft: true,
       createdBy: data.createdBy,
@@ -1305,7 +1313,7 @@ export class TherapyService {
     return progress;
   }
 
-  async listProgress(therapyCaseId: string) {
+  async listProgress(therapyCaseId: string, clinicId: string) {
     await this.findCaseById(therapyCaseId, clinicId);
     return this.prisma.therapyProgress.findMany({
       where: { therapyCaseId },
@@ -1313,10 +1321,10 @@ export class TherapyService {
     });
   }
 
-  async generateSummary(therapyCaseId: string, createdBy?: string) {
+  async generateSummary(therapyCaseId: string, clinicId: string, createdBy?: string) {
     const therapyCase = await this.findCaseById(therapyCaseId, clinicId);
     const sessions = await this.prisma.therapySession.findMany({
-      where: { therapyCaseId },
+      where: { therapyCaseId, clinicId },
       include: { attendance: true, notes: true },
       orderBy: { scheduledAt: 'asc' },
     });
@@ -1337,6 +1345,7 @@ export class TherapyService {
       notes,
       createdBy,
       inputRef: therapyCaseId,
+      clinicId,
     });
 
     const summary = await this.prisma.therapyAiSummary.create({
@@ -1464,8 +1473,10 @@ export class TherapyService {
     };
   }
 
-  private async requireStaffForUser(userId: string) {
-    const staff = await this.prisma.staffProfile.findFirst({ where: { userId } });
+  private async requireStaffForUser(userId: string, clinicId?: string) {
+    const staff = await this.prisma.staffProfile.findFirst({
+      where: clinicId ? { userId, clinicId } : { userId },
+    });
     if (!staff) {
       throw new BadRequestException(
         'No staff profile linked to this user. Ask an admin to link your login to a staff profile.',

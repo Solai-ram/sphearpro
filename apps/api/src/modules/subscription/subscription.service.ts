@@ -1417,7 +1417,7 @@ export class SubscriptionService {
           target === 'EXPIRED' ? SUBSCRIPTION_EVENT.EXPIRED : SUBSCRIPTION_EVENT.CANCELLED,
         oldStatus: sub.status,
         newStatus: target,
-        metadata: opts?.metadata || {},
+        metadata: (opts?.metadata ?? {}) as Prisma.InputJsonValue,
       });
     });
     return this.getSubscription(sub.clinicId);

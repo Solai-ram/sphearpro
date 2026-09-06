@@ -128,6 +128,7 @@ export class AiService {
       prompt,
       createdBy: input.createdBy,
       inputRef: input.inputRef || transcript.requestId,
+      clinicId: input.clinicId,
     });
 
     await this.auditService.log({
@@ -176,6 +177,7 @@ export class AiService {
     }>;
     createdBy?: string;
     inputRef?: string;
+    clinicId: string;
   }) {
     const notesBlock = input.notes
       .map((n, i) => {
@@ -211,6 +213,7 @@ export class AiService {
       prompt,
       createdBy: input.createdBy,
       inputRef: input.inputRef,
+      clinicId: input.clinicId,
     });
   }
 
@@ -234,6 +237,7 @@ export class AiService {
       prompt,
       createdBy: input.createdBy,
       inputRef: input.inputRef,
+      clinicId: input.clinicId,
     });
 
     return { ...generated, soap: this.parseSoap(generated.text) };

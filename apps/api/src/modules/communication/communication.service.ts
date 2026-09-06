@@ -23,6 +23,7 @@ export class CommunicationService {
     if (!appointment) return null;
     const when = this.formatWhen(appointment.appointmentAt);
     return this.enqueue({
+      clinicId: appointment.clinicId,
       patientId: appointment.patient.id,
       phone: appointment.patient.phone,
       type: 'GENERIC',
@@ -48,6 +49,7 @@ export class CommunicationService {
     const when = this.formatWhen(appointment.appointmentAt);
     const timing = reminderOffsetHours === 24 ? 'tomorrow' : 'in 1 hour';
     return this.enqueue({
+      clinicId: appointment.clinicId,
       patientId: appointment.patient.id,
       phone: appointment.patient.phone,
       type: 'APPOINTMENT_REMINDER',
@@ -94,6 +96,7 @@ export class CommunicationService {
     const when = this.formatWhen(session.scheduledAt);
 
     await this.enqueue({
+      clinicId: session.clinicId,
       patientId: patient.id,
       phone: patient.phone,
       type: 'GENERIC',
@@ -113,6 +116,7 @@ export class CommunicationService {
     const dayBefore = new Date(session.scheduledAt);
     dayBefore.setDate(dayBefore.getDate() - 1);
     await this.enqueue({
+      clinicId: session.clinicId,
       patientId: patient.id,
       phone: patient.phone,
       type: 'THERAPY_REMINDER',
@@ -133,6 +137,7 @@ export class CommunicationService {
     const twoHours = new Date(session.scheduledAt);
     twoHours.setHours(twoHours.getHours() - 2);
     return this.enqueue({
+      clinicId: session.clinicId,
       patientId: patient.id,
       phone: patient.phone,
       type: 'THERAPY_REMINDER',
@@ -158,6 +163,7 @@ export class CommunicationService {
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return this.enqueue({
+      clinicId: invoice.clinicId,
       patientId: invoice.patient.id,
       phone: invoice.patient.phone,
       type: 'INVOICE',
@@ -186,6 +192,7 @@ export class CommunicationService {
     });
     if (!payment) throw new NotFoundException('Payment not found');
     return this.enqueue({
+      clinicId: payment.clinicId,
       patientId: payment.patient.id,
       phone: payment.patient.phone,
       type: 'PAYMENT_RECEIPT',
@@ -393,6 +400,7 @@ export class CommunicationService {
   }
 
   private async enqueue(input: {
+    clinicId: string;
     patientId: string;
     phone?: string | null;
     type: MessageType;
