@@ -17,3 +17,6 @@ backups/
 
 .env.production.secrets.local
 
+
+hislite-local-data.sql
+local-schema-test.sql
