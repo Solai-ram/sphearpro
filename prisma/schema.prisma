@@ -1,0 +1,1764 @@
+// =============================================================================
+// HIS-Lite — PostgreSQL Prisma Schema (Database Source of Truth)
+// Derived from HIS-Lite-Architecture-and-User-Stories.md §25 (Core Database Domains)
+// Covers 13 domain groups: AUTH, PATIENT, STAFF, APPOINTMENT, CLINICAL,
+// THERAPY, BILLING, INVENTORY, DOCUMENTS, COMMUNICATION, AI, ADMIN, AUDIT
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// TENANT (SaaS multi-clinic)
+// Every clinic-owned root row carries clinicId. See docs/SAAS-DECISIONS.md.
+// =============================================================================
+
+enum ClinicStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+model Clinic {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  status    ClinicStatus @default(ACTIVE)
+  phone     String?
+  email     String?
+  gstin     String?
+  address   Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  users                    User[]
+  patients                 Patient[]
+  staffProfiles            StaffProfile[]
+  appointmentSlotTemplates AppointmentSlotTemplate[]
+  appointments             Appointment[]
+  queueItems               QueueItem[]
+  opCases                  OpCase[]
+  therapyCases             TherapyCase[]
+  therapyTypes             TherapyType[]
+  therapyPackages          TherapyPackage[]
+  patientPackages          PatientPackage[]
+  therapySessions          TherapySession[]
+  invoices                 Invoice[]
+  payments                 Payment[]
+  products                 Product[]
+  productCategories        ProductCategory[]
+  suppliers                Supplier[]
+  stockTransactions        StockTransaction[]
+  productSales             ProductSale[]
+  stockReturnRequests      StockReturnRequest[]
+  patientDocuments         PatientDocument[]
+  communicationMessages    CommunicationMessage[]
+  messageTemplates         MessageTemplate[]
+  communicationEvents      CommunicationEvent[]
+  aiRequests               AiRequest[]
+  aiUsages                 AiUsage[]
+  settings                 Setting[]
+  labProcedures            LabProcedure[]
+  auditLogs                AuditLog[]
+  discounts                Discount[]
+  subscriptions            Subscription[]
+  subscriptionPayments     SubscriptionPayment[]
+  subscriptionInvoices     SubscriptionInvoice[]
+  subscriptionEvents       SubscriptionEvent[]
+
+  @@index([status])
+  @@map("clinics")
+}
+
+// =============================================================================
+// AUTH DOMAIN
+// §8 User Roles, §10 Permission Management, §25 AUTH group
+// Roles are database-driven (§279), never hard-coded.
+// =============================================================================
+
+model User {
+  id            String         @id @default(cuid())
+  clinicId      String
+  username      String?        @unique
+  email         String         @unique
+  mobile        String?        @unique
+  passwordHash  String
+  name          String
+  status        UserStatus     @default(ACTIVE)
+  staffType     StaffType?
+  /// Platform support account for this clinic (full ADMIN). Excluded from seat counts.
+  isSystemSupport Boolean      @default(false)
+  /// AES-GCM encrypted plaintext password for platform console reveal only.
+  supportPasswordEnc String?
+  refreshTokenId   String?     @unique
+  refreshTokenHash String?
+  resetTokenId     String?     @unique
+  resetTokenHash   String?
+  resetTokenExpiresAt DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  lastLoginAt   DateTime?
+
+  clinic            Clinic             @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  roles             UserRole[]
+  userPermissions   UserPermission[]
+  auditLogs         AuditLog[]
+  patientDocuments  PatientDocument[]   @relation("DocumentUploadedBy")
+  documentAccesses  DocumentAccessLog[]
+  dashboardLayouts  DashboardLayout[]
+  stockReturnsRequested StockReturnRequest[] @relation("ReturnRequestedBy")
+  stockReturnsReviewed  StockReturnRequest[] @relation("ReturnReviewedBy")
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([clinicId, isSystemSupport])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum StaffType {
+  ADMIN
+  DOCTOR
+  THERAPIST
+  RECEPTIONIST
+  BILLING
+  INVENTORY
+  OTHER
+}
+
+model Role {
+  id              String             @id @default(cuid())
+  name            String             @unique
+  description     String?
+  isSystem        Boolean            @default(false) // System roles cannot be deleted
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  userRoles         UserRole[]
+  rolePermissions   RolePermission[]
+  dashboardLayouts  DashboardLayout[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g. "therapy.session.create"
+  module      String   // e.g. "therapy"
+  action      String   // e.g. "create", "view", "edit", "delete"
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions  RolePermission[]
+  userPermissions  UserPermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id          String   @id @default(cuid())
+  roleId      String
+  permissionId String
+  granted     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id          String   @id @default(cuid())
+  userId      String
+  permissionId String
+  granted     Boolean  // Explicit per-user grant/deny (overrides role)
+  createdAt   DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+// =============================================================================
+// PATIENT DOMAIN
+// §11 Patient Registration (US-PATIENT-001..005), §25 PATIENT group
+// Patient is the central clinical entity (§771)
+// =============================================================================
+
+model Patient {
+  id              String    @id @default(cuid())
+  clinicId        String
+  patientNumber   String
+  name            String
+  dateOfBirth     DateTime?
+  gender          Gender?
+  phone           String?
+  alternatePhone  String?
+  email           String?
+  address         Json?     // Structured address (street, city, state, pincode, country)
+  emergencyContact Json?    // { name, phone, relationship }
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String?   // User ID
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  clinic            Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  appointments      Appointment[]
+  opCases           OpCase[]
+  therapyCases      TherapyCase[]
+  invoices          Invoice[]
+  payments          Payment[]
+  productSales      ProductSale[]
+  documents         PatientDocument[]
+  auditLogs         AuditLog[]
+  timelineEvents    PatientTimelineEvent[]
+  communicationMessages CommunicationMessage[]
+  queueItems        QueueItem[]
+  patientPackages   PatientPackage[]
+
+  @@unique([clinicId, patientNumber])
+  @@unique([clinicId, phone])
+  @@unique([clinicId, email])
+  @@index([clinicId])
+  @@index([name])
+  @@index([phone])
+  @@map("patients")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
+}
+
+// Unified patient timeline (US-PATIENT-005)
+// Aggregates OP visits, appointments, therapy sessions, attendance, notes,
+// prescriptions, documents, invoices, payments
+model PatientTimelineEvent {
+  id           String          @id @default(cuid())
+  patientId    String
+  eventType    TimelineEventType
+  referenceId  String          // ID of the referenced entity (appointment, invoice, etc.)
+  title        String
+  description  String?
+  occurredAt   DateTime
+  metadata     Json?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, occurredAt])
+  @@map("patient_timeline_events")
+}
+
+enum TimelineEventType {
+  APPOINTMENT
+  OP_VISIT
+  THERAPY_SESSION
+  ATTENDANCE
+  THERAPY_NOTE
+  PRESCRIPTION
+  DOCUMENT
+  INVOICE
+  PAYMENT
+  OTHER
+}
+
+// =============================================================================
+// STAFF DOMAIN
+// §25 STAFF group — staff profiles + provider schedules
+// =============================================================================
+
+model StaffProfile {
+  id           String     @id @default(cuid())
+  clinicId     String
+  userId       String?    @unique // Links to User if staff is a system user
+  name         String
+  staffType    StaffType
+  specialization String?
+  department   String?
+  phone        String?
+  email        String?
+  isProvider   Boolean    @default(false) // Doctors, therapists, etc.
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  clinic            Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  appointments      Appointment[]
+  therapyCases      TherapyCase[]
+  therapySessions   TherapySession[] @relation("SessionTherapist")
+  sessionDoctorFor  TherapySession[] @relation("SessionDoctor")
+  therapyNotes      TherapyNote[] @relation("NoteTherapist")
+  authoredNotes     TherapyNote[] @relation("NoteAuthor")
+  opCases           OpCase[]
+  schedules         ProviderSchedule[]
+
+  @@index([clinicId])
+  @@index([staffType])
+  @@map("staff_profiles")
+}
+
+model ProviderSchedule {
+  id          String   @id @default(cuid())
+  staffId     String
+  dayOfWeek   Int      // 0=Sunday .. 6=Saturday
+  startTime   String   // "09:00"
+  endTime     String   // "17:00"
+  isAvailable Boolean  @default(true)
+
+  staff StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, dayOfWeek])
+  @@map("provider_schedules")
+}
+
+// Clinic-wide appointment time slots (therapy day board)
+model AppointmentSlotTemplate {
+  id        String   @id @default(cuid())
+  clinicId  String
+  label     String?
+  startTime String   // "09:00"
+  endTime   String   // "09:30"
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, isActive, sortOrder])
+  @@map("appointment_slot_templates")
+}
+
+// =============================================================================
+// APPOINTMENT DOMAIN
+// §13 Appointment User Stories, §25 APPOINTMENT group
+// Appointment and consultation are DIFFERENT entities (§771)
+// =============================================================================
+
+model Appointment {
+  id           String           @id @default(cuid())
+  clinicId     String
+  patientId    String
+  providerId   String           // StaffProfile ID
+  appointmentAt DateTime
+  durationMin  Int              @default(30)
+  status       AppointmentStatus @default(BOOKED)
+  reason       String?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  createdBy    String?
+
+  clinic         Clinic               @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient        Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider       StaffProfile         @relation(fields: [providerId], references: [id])
+  statusHistory  AppointmentStatusHistory[]
+  reminders      CommunicationMessage[] @relation("AppointmentReminders")
+  queueItems     QueueItem[] @relation("QueueAppointment")
+  opCases        OpCase[]
+  therapySessions TherapySession[]
+
+  @@index([clinicId])
+  @@index([providerId, appointmentAt])
+  @@index([patientId])
+  @@index([appointmentAt])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+model AppointmentStatusHistory {
+  id            String           @id @default(cuid())
+  appointmentId String
+  status        AppointmentStatus
+  changedAt     DateTime         @default(now())
+  changedBy     String?
+  note          String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@map("appointment_status_history")
+}
+
+// Reception queue (US-REC-002/003)
+model QueueItem {
+  id            String       @id @default(cuid())
+  clinicId      String
+  appointmentId String?
+  patientId     String
+  tokenNumber   Int
+  position      Int
+  status        QueueStatus  @default(WAITING)
+  checkedInAt   DateTime     @default(now())
+  calledAt      DateTime?
+  completedAt   DateTime?
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  appointment Appointment? @relation("QueueAppointment", fields: [appointmentId], references: [id], onDelete: SetNull)
+  patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId])
+  @@index([status, position])
+  @@map("queue_items")
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_CONSULTATION
+  COMPLETED
+  LEFT
+}
+
+// =============================================================================
+// CLINICAL DOMAIN
+// §15 OP/Clinical User Stories, §25 CLINICAL group
+// =============================================================================
+
+model OpCase {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String
+  providerId  String?
+  appointmentId String?
+  chiefComplaint String?
+  vitals      Json?    // { temp, bp, hr, weight, ... }
+  status      OpCaseStatus @default(OPEN)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic       Clinic         @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient      Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider     StaffProfile?  @relation(fields: [providerId], references: [id])
+  appointment  Appointment?   @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  visits       OpVisit[]
+  diagnoses    Diagnosis[]
+  notes        ClinicalNote[]
+  prescriptions Prescription[]
+  followUps    FollowUp[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@map("op_cases")
+}
+
+enum OpCaseStatus {
+  OPEN
+  CLOSED
+}
+
+model OpVisit {
+  id        String   @id @default(cuid())
+  opCaseId  String
+  visitedAt DateTime @default(now())
+  notes     String?
+
+  opCase OpCase @relation(fields: [opCaseId], references: [id], onDelete: Cascade)
+
+  @@index([opCaseId])
+  @@map("op_visits")
+}
+
+model Diagnosis {
+  id          String   @id @default(cuid())
+  opCaseId    String
+  code        String?  // ICD-10
+  description String
+  type        DiagnosisType @default(PRIMARY)
+
+  opCase OpCase @relation(fields: [opCaseId], references: [id], onDelete: Cascade)
+
+  @@index([opCaseId])
+  @@map("diagnoses")
+}
+
+enum DiagnosisType {
+  PRIMARY
+  SECONDARY
+}
+
+model ClinicalNote {
+  id        String   @id @default(cuid())
+  opCaseId  String
+  content   String
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  opCase OpCase @relation(fields: [opCaseId], references: [id], onDelete: Cascade)
+
+  @@index([opCaseId])
+  @@map("clinical_notes")
+}
+
+model Prescription {
+  id        String   @id @default(cuid())
+  opCaseId  String
+  notes     String?
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  opCase  OpCase              @relation(fields: [opCaseId], references: [id], onDelete: Cascade)
+  items   PrescriptionItem[]
+
+  @@index([opCaseId])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String  @id @default(cuid())
+  prescriptionId String
+  drugName       String
+  dosage         String?
+  frequency      String?
+  duration       String?
+  instructions   String?
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+
+model FollowUp {
+  id        String       @id @default(cuid())
+  opCaseId  String
+  dueDate   DateTime
+  reason    String?
+  status    FollowUpStatus @default(PENDING)
+
+  opCase OpCase @relation(fields: [opCaseId], references: [id], onDelete: Cascade)
+
+  @@index([opCaseId, dueDate])
+  @@map("follow_ups")
+}
+
+enum FollowUpStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// =============================================================================
+// THERAPY DOMAIN
+// §16 Therapy User Stories, §25 THERAPY group, §26 Relationship, §43 Rules
+// Therapy package ≠ therapy session (§773)
+// Attendance and billing are independent (§774)
+// Session may be covered by package OR billed separately (§775/776)
+// =============================================================================
+
+model TherapyCase {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String
+  therapistId String
+  title       String
+  assessment  String?
+  goals       Json?    // Array of goal objects
+  status      TherapyCaseStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic      Clinic           @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient     Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist   StaffProfile     @relation(fields: [therapistId], references: [id])
+  packages    PatientPackage[]
+  sessions    TherapySession[]
+  aiSummaries TherapyAiSummary[]
+  progress    TherapyProgress[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@map("therapy_cases")
+}
+
+enum TherapyCaseStatus {
+  ACTIVE
+  COMPLETED
+  DISCONTINUED
+}
+
+model TherapyType {
+  id          String   @id @default(cuid())
+  clinicId    String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  packages TherapyPackage[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+  @@map("therapy_types")
+}
+
+model TherapyPackage {
+  id             String   @id @default(cuid())
+  clinicId       String
+  therapyTypeId  String
+  name           String
+  totalSessions  Int
+  frequency      SessionFrequency
+  price          Decimal  @db.Decimal(10, 2)
+  validityDays   Int?     // Package expiry from purchase
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  clinic          Clinic          @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  therapyType  TherapyType      @relation(fields: [therapyTypeId], references: [id])
+  patientPackages PatientPackage[]
+
+  @@index([clinicId])
+  @@index([therapyTypeId])
+  @@map("therapy_packages")
+}
+
+enum SessionFrequency {
+  WEEKLY
+  TWICE_WEEKLY
+  THREE_TIMES_WEEKLY
+  DAILY
+  EVERY_TWO_WEEKS
+  MONTHLY
+  CUSTOM
+}
+
+model PatientPackage {
+  id             String   @id @default(cuid())
+  clinicId       String
+  patientId      String
+  therapyCaseId  String
+  packageId      String
+  totalSessions  Int
+  usedSessions   Int      @default(0)
+  expiryDate     DateTime?
+  purchasedAt    DateTime @default(now())
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapyCase TherapyCase  @relation(fields: [therapyCaseId], references: [id], onDelete: Cascade)
+  package     TherapyPackage @relation(fields: [packageId], references: [id])
+  sessions    TherapySession[]
+
+  @@index([clinicId])
+  @@index([patientId, therapyCaseId])
+  @@map("patient_packages")
+}
+
+// remainingSessions = totalSessions - usedSessions (computed in service layer)
+
+model TherapySession {
+  id             String           @id @default(cuid())
+  clinicId       String
+  therapyCaseId  String
+  patientPackageId String?
+  therapistId    String
+  doctorId       String?
+  appointmentId  String?          @unique
+  scheduledAt    DateTime
+  status         TherapySessionStatus @default(SCHEDULED)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  clinic        Clinic           @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  therapyCase   TherapyCase      @relation(fields: [therapyCaseId], references: [id], onDelete: Cascade)
+  patientPackage PatientPackage? @relation(fields: [patientPackageId], references: [id], onDelete: SetNull)
+  therapist     StaffProfile     @relation("SessionTherapist", fields: [therapistId], references: [id])
+  doctor        StaffProfile?    @relation("SessionDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
+  appointment   Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  attendance    TherapyAttendance?
+  notes         TherapyNote[]
+
+  @@index([clinicId])
+  @@index([therapyCaseId, scheduledAt])
+  @@index([therapistId])
+  @@index([doctorId])
+  @@index([appointmentId])
+  @@map("therapy_sessions")
+}
+
+enum TherapySessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+  NO_SHOW
+}
+
+model TherapyAttendance {
+  id         String   @id @default(cuid())
+  sessionId  String   @unique
+  status     AttendanceStatus
+  markedAt   DateTime @default(now())
+  markedBy   String?
+
+  session TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("therapy_attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  CANCELLED
+  RESCHEDULED
+  LATE
+}
+
+// SOAP-structured notes (§638) — authored by attending doctor or therapist
+// Subjective, Objective, Activities, Observations, Progress, Challenges, NextPlan
+model TherapyNote {
+  id           String   @id @default(cuid())
+  sessionId    String
+  therapistId  String   // Case therapist (legacy FK; kept for compatibility)
+  authoredById String   // Actual note author (doctor or therapist)
+  subjective   String?
+  objective    String?
+  activities   String?
+  observations String?
+  progress     String?
+  challenges   String?
+  nextPlan     String?
+  isAiDraft    Boolean  @default(false) // §30: AI output must be flagged
+  aiReviewed   Boolean  @default(false) // Human approved before final
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  session    TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  therapist  StaffProfile   @relation("NoteTherapist", fields: [therapistId], references: [id])
+  authoredBy StaffProfile   @relation("NoteAuthor", fields: [authoredById], references: [id])
+
+  @@index([sessionId])
+  @@index([sessionId, authoredById])
+  @@index([authoredById])
+  @@map("therapy_notes")
+}
+
+model TherapyProgress {
+  id         String   @id @default(cuid())
+  therapyCaseId String
+  recordedAt DateTime @default(now())
+  metric     String   // e.g. "speech_clarity", "confidence"
+  value      Decimal? @db.Decimal(10, 2)
+  note       String?
+
+  therapyCase TherapyCase @relation(fields: [therapyCaseId], references: [id], onDelete: Cascade)
+
+  @@index([therapyCaseId, recordedAt])
+  @@map("therapy_progress")
+}
+
+model TherapyAiSummary {
+  id          String   @id @default(cuid())
+  therapyCaseId String
+  content     String   // AI-generated summary
+  isReviewed  Boolean  @default(false) // Human review gate (§698)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  createdBy   String?
+  aiRequestId String?
+
+  therapyCase TherapyCase   @relation(fields: [therapyCaseId], references: [id], onDelete: Cascade)
+  aiRequest   AiRequest?    @relation("AiRequestSummaries", fields: [aiRequestId], references: [id])
+
+  @@index([therapyCaseId])
+  @@map("therapy_ai_summaries")
+}
+
+// =============================================================================
+// BILLING DOMAIN
+// §17 Billing, §27 Central Billing Model, §43 Rules
+// Single billing engine: BillableItem → Invoice → Payment → Receipt
+// Invoice ≠ Payment (§777)
+// =============================================================================
+
+model Invoice {
+  id            String       @id @default(cuid())
+  clinicId      String
+  patientId     String
+  invoiceNumber String
+  issueDate     DateTime     @default(now())
+  dueDate       DateTime?
+  status        InvoiceStatus @default(PENDING)
+  subtotal      Decimal      @db.Decimal(10, 2)
+  discountTotal Decimal      @db.Decimal(10, 2) @default(0)
+  taxTotal      Decimal      @db.Decimal(10, 2) @default(0)
+  grandTotal    Decimal      @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  clinic     Clinic         @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient    Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  items      InvoiceItem[]
+  payments   Payment[]
+  refunds    Refund[]
+  messages   CommunicationMessage[] @relation("InvoiceMessages")
+  allocations PaymentAllocation[] @relation("AllocationInvoice")
+
+  @@unique([clinicId, invoiceNumber])
+  @@index([clinicId])
+  @@index([patientId, issueDate])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  // Billable types: OP, THERAPY_PACKAGE, THERAPY_SESSION, PRODUCT, OTHER
+  billableType BillableType
+  referenceId String?  // Links to op_case, patient_package, therapy_session
+  productId   String?  // Links to product for PRODUCT billable type
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  discount    Decimal  @db.Decimal(10, 2) @default(0)
+  tax         Decimal  @db.Decimal(10, 2) @default(0)
+  lineTotal   Decimal  @db.Decimal(10, 2)
+  model       String?  // Hearing aid / device model
+  serialNo    String?
+  warranty    String?
+  colour      String?
+
+  invoice         Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product         Product?         @relation("ProductBilling", fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@index([billableType, referenceId])
+  @@map("invoice_items")
+}
+
+enum BillableType {
+  OP_VISIT
+  THERAPY_PACKAGE
+  THERAPY_SESSION
+  PRODUCT
+  LAB_TEST
+  OTHER
+}
+
+model Payment {
+  id          String       @id @default(cuid())
+  clinicId    String
+  invoiceId   String
+  patientId   String
+  amount      Decimal      @db.Decimal(10, 2)
+  method      PaymentMethod
+  status      PaymentStatus @default(SUCCESS)
+  paidAt      DateTime     @default(now())
+  reference   String?      // Gateway transaction ID
+  createdBy   String?
+
+  clinic        Clinic          @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  invoice       Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allocations   PaymentAllocation[]
+  refunds       Refund[]
+
+  @@index([clinicId])
+  @@index([invoiceId, paidAt])
+  @@index([patientId])
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+  NET_BANKING
+  WALLET
+  OTHER
+}
+
+enum PaymentStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  REFUNDED
+}
+
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  paymentId String
+  invoiceId String
+  amount    Decimal  @db.Decimal(10, 2)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation("AllocationInvoice", fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_allocations")
+}
+
+model Refund {
+  id          String       @id @default(cuid())
+  invoiceId   String
+  paymentId   String?
+  amount      Decimal      @db.Decimal(10, 2)
+  reason      String?
+  status      RefundStatus @default(PROCESSED)
+  refundedAt  DateTime     @default(now())
+  createdBy   String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@map("refunds")
+}
+
+enum RefundStatus {
+  PROCESSED
+  PENDING
+  FAILED
+}
+
+model Discount {
+  id           String   @id @default(cuid())
+  clinicId     String
+  name         String
+  type         DiscountType
+  value        Decimal  @db.Decimal(10, 2) // % or fixed amount
+  isActive     Boolean  @default(true)
+  validFrom    DateTime?
+  validTo      DateTime?
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId])
+  @@map("discounts")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// =============================================================================
+// INVENTORY DOMAIN
+// §18 Product & Inventory User Stories, §25 INVENTORY group
+// Product stock maintained through stock_transactions (§778)
+// =============================================================================
+
+model Product {
+  id           String   @id @default(cuid())
+  clinicId     String
+  sku          String
+  name         String
+  categoryId   String
+  description  String?
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  taxRate      Decimal  @db.Decimal(5, 2) @default(0)
+  lowStockThreshold Int
+  model        String?  // Hearing aid / device model (prints on tax invoice)
+  serialNo     String?
+  warranty     String?
+  colour       String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clinic          Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  category        ProductCategory @relation(fields: [categoryId], references: [id])
+  transactions    StockTransaction[]
+  invoiceItems    InvoiceItem[]    @relation("ProductBilling")
+  sales           ProductSale[]
+  returnRequests  StockReturnRequest[]
+
+  @@unique([clinicId, sku])
+  @@index([clinicId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+// Product sales link a patient to a product purchase (OTC/retail sales)
+model ProductSale {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String
+  productId   String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  soldAt      DateTime @default(now())
+  invoiceId   String?
+  createdBy   String?
+
+  clinic  Clinic  @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([productId])
+  @@map("product_sales")
+}
+
+model ProductCategory {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  parentId  String?  // Self-referential for hierarchy
+
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  products  Product[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+  @@map("product_categories")
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  isActive  Boolean  @default(true)
+
+  clinic       Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  transactions StockTransaction[]
+
+  @@index([clinicId])
+  @@map("suppliers")
+}
+
+model StockTransaction {
+  id          String           @id @default(cuid())
+  clinicId    String
+  productId   String
+  supplierId  String?
+  type        StockTxnType
+  quantity    Int              // + for in, - for out
+  balance     Int              // Running balance after transaction
+  unitCost    Decimal?         @db.Decimal(10, 2)
+  reference   String?          // Invoice ID, PO ID, etc.
+  note        String?
+  createdAt   DateTime         @default(now())
+  createdBy   String?
+
+  clinic   Clinic    @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  returnRequest StockReturnRequest?
+
+  @@index([clinicId])
+  @@index([productId, createdAt])
+  @@map("stock_transactions")
+}
+
+enum StockTxnType {
+  PURCHASE
+  SALE
+  RETURN
+  DAMAGE
+  ADJUSTMENT
+}
+
+// Item return workflow: staff submits → admin approves → stock RETURN txn created
+model StockReturnRequest {
+  id                 String             @id @default(cuid())
+  clinicId           String
+  productId          String
+  quantity           Int
+  reason             String?
+  status             StockReturnStatus  @default(PENDING)
+  requestedBy        String
+  requestedAt        DateTime           @default(now())
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  reviewNote         String?
+  stockTransactionId String?            @unique
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  clinic           Clinic            @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockTransaction StockTransaction? @relation(fields: [stockTransactionId], references: [id])
+  requester        User              @relation("ReturnRequestedBy", fields: [requestedBy], references: [id])
+  reviewer         User?             @relation("ReturnReviewedBy", fields: [reviewedBy], references: [id])
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([productId])
+  @@index([requestedAt])
+  @@map("stock_return_requests")
+}
+
+enum StockReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =============================================================================
+// DOCUMENTS DOMAIN
+// §22 Documents, §25 DOCUMENTS group, §34 Storage Architecture
+// Files in S3; metadata in Postgres (§1351)
+// =============================================================================
+
+model PatientDocument {
+  id          String   @id @default(cuid())
+  clinicId    String
+  patientId   String
+  category    DocCategory
+  fileName    String   // Original filename
+  s3Key       String   @unique // S3 object key
+  mimeType    String
+  sizeBytes   Int
+  uploadedById String?
+  uploadedAt  DateTime @default(now())
+  isDeleted   Boolean  @default(false)
+
+  clinic      Clinic              @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient     Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploadedBy  User?               @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  accessLogs  DocumentAccessLog[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@map("patient_documents")
+}
+
+enum DocCategory {
+  AUDIOGRAM
+  LAB_REPORT
+  PRESCRIPTION
+  REFERRAL
+  THERAPY_ASSESSMENT
+  SCANNED
+  OTHER
+}
+
+model DocumentAccessLog {
+  id          String   @id @default(cuid())
+  documentId  String
+  accessedById String?
+  accessedAt  DateTime @default(now())
+  action      String   // VIEW, DOWNLOAD
+  ipAddress   String?
+
+  document PatientDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  accessor  User?          @relation(fields: [accessedById], references: [id])
+
+  @@index([documentId])
+  @@map("document_access_logs")
+}
+
+// =============================================================================
+// COMMUNICATION DOMAIN
+// §19 WhatsApp, §25 COMMUNICATION group, §28 Architecture
+// Business event → BullMQ → WhatsApp worker → provider → status → DB
+// =============================================================================
+
+model CommunicationMessage {
+  id           String            @id @default(cuid())
+  clinicId     String
+  patientId    String?
+  templateId   String?
+  appointmentId String?
+  invoiceId    String?
+  type         MessageType
+  channel      Channel
+  to           String            // Phone number
+  content      String
+  status       MessageStatus     @default(QUEUED)
+  providerMsgId String?          // WhatsApp provider message ID
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  readAt       DateTime?
+  failedAt     DateTime?
+  failureReason String?
+  referenceType String?          // appointment, invoice, payment
+  referenceId   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patient        Patient?          @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  template       MessageTemplate?  @relation(fields: [templateId], references: [id])
+  appointment    Appointment?      @relation("AppointmentReminders", fields: [appointmentId], references: [id])
+  invoice        Invoice?          @relation("InvoiceMessages", fields: [invoiceId], references: [id])
+
+  @@index([clinicId])
+  @@index([patientId, status])
+  @@index([referenceType, referenceId])
+  @@map("communication_messages")
+}
+
+enum MessageType {
+  APPOINTMENT_REMINDER
+  THERAPY_REMINDER
+  PAYMENT_RECEIPT
+  INVOICE
+  GENERIC
+}
+
+enum Channel {
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  clinicId  String
+  name      String
+  type      MessageType
+  language  String   @default("en")
+  body      String   // Supports template variables {{patientName}}, {{date}}, etc.
+  isActive  Boolean  @default(true)
+
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  messages CommunicationMessage[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+  @@map("message_templates")
+}
+
+model CommunicationEvent {
+  id           String   @id @default(cuid())
+  clinicId     String
+  eventType    String   // e.g. "APPOINTMENT_BOOKED"
+  payload      Json
+  processedAt  DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId])
+  @@index([eventType])
+  @@map("communication_events")
+}
+
+// =============================================================================
+// AI DOMAIN
+// §23 AI User Stories, §25 AI group, §29 AI Architecture
+// AI → Draft → Human Review → Final (§30 safety boundary)
+// AI never writes directly to DB (§1207)
+// =============================================================================
+
+model AiRequest {
+  id           String       @id @default(cuid())
+  clinicId     String
+  type         AiRequestType
+  provider     String       // "google" | "elevenlabs"
+  model        String?
+  promptTokens Int?
+  inputRef     String?      // Reference to source (therapy case, audio file, etc.)
+  status       AiRequestStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  createdBy    String?
+
+  clinic       Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  outputs      AiOutput[]
+  summaries    TherapyAiSummary[] @relation("AiRequestSummaries")
+
+  @@index([clinicId])
+  @@index([type, createdAt])
+  @@map("ai_requests")
+}
+
+enum AiRequestType {
+  THERAPY_SUMMARY
+  VOICE_TRANSCRIPTION
+  NOTE_DRAFT
+  PROGRESS_SUMMARY
+}
+
+enum AiRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model AiOutput {
+  id         String   @id @default(cuid())
+  requestId  String
+  contentType String  // "summary" | "transcript" | "note_draft"
+  content    String
+  confidence Decimal? @db.Decimal(5, 2)
+  isReviewed Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  request AiRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("ai_outputs")
+}
+
+model AiUsage {
+  id          String   @id @default(cuid())
+  clinicId    String
+  provider    String
+  model       String?
+  requestType AiRequestType
+  promptTokens Int
+  completionTokens Int
+  costUsd     Decimal? @db.Decimal(10, 6)
+  recordedAt  DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId])
+  @@index([provider, recordedAt])
+  @@map("ai_usage")
+}
+
+model AiProviderConfig {
+  id          String   @id @default(cuid())
+  provider    String   @unique // "google" | "elevenlabs"
+  isEnabled   Boolean  @default(true)
+  apiBaseUrl  String?
+  defaultModel String?
+  // Secrets stored in env/secret manager, NOT in DB. This holds config only.
+  settings    Json?
+  updatedAt   DateTime @updatedAt
+
+  @@map("ai_provider_configs")
+}
+
+// =============================================================================
+// ADMIN DOMAIN
+// §20 Admin Dashboard, §25 ADMIN group
+// =============================================================================
+
+model DashboardWidget {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "today_revenue", "waiting_queue"
+  title       String
+  description String?
+  category    WidgetCategory
+  isSystem    Boolean  @default(true)
+
+  layouts     DashboardLayout[]
+
+  @@map("dashboard_widgets")
+}
+
+enum WidgetCategory {
+  PATIENT
+  OPERATIONS
+  THERAPY
+  FINANCE
+  INVENTORY
+  COMMUNICATION
+  AI
+}
+
+model DashboardLayout {
+  id        String   @id @default(cuid())
+  roleId    String?  // Role-specific default layout
+  userId    String?  // User-specific override
+  widgetId  String
+  positionX Int
+  positionY Int
+  width     Int      @default(1)
+  height    Int      @default(1)
+  isVisible Boolean  @default(true)
+
+  widget    DashboardWidget @relation(fields: [widgetId], references: [id])
+  role      Role?           @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, widgetId])
+  @@unique([userId, widgetId])
+  @@index([roleId])
+  @@index([userId])
+  @@map("dashboard_layouts")
+}
+
+model Setting {
+  id       String @id @default(cuid())
+  clinicId String
+  key      String
+  value    Json
+  group    String @default("general")
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@unique([clinicId, key])
+  @@index([clinicId])
+  @@index([group])
+  @@map("settings")
+}
+
+// =============================================================================
+// LAB DOMAIN
+// Catalog of lab / diagnostic procedures (v1: master data + dashboard)
+// =============================================================================
+
+enum LabSampleType {
+  NONE
+  BLOOD
+  SERUM
+  URINE
+  SWAB
+  SPUTUM
+  OTHER
+}
+
+model LabProcedure {
+  id           String        @id @default(cuid())
+  clinicId     String
+  code         String
+  name         String
+  department   String
+  sampleType   LabSampleType @default(NONE)
+  price        Decimal       @db.Decimal(10, 2)
+  tatHours     Int           @default(24)
+  instructions String?
+  isActive     Boolean       @default(true)
+  createdBy    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@unique([clinicId, code])
+  @@index([clinicId])
+  @@index([department])
+  @@index([isActive])
+  @@index([name])
+  @@map("lab_procedures")
+}
+
+// =============================================================================
+// AUDIT DOMAIN
+// §24 Audit, §25 AUDIT group, §33 Audit Requirements
+// Records: Who, What, When, Which patient, Which record, Action result, Metadata
+// =============================================================================
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  clinicId     String?
+  actorId      String?  // User ID
+  actorType    String?  // "user" | "system" | "ai"
+  action       String   // e.g. PATIENT_VIEWED, THERAPY_NOTE_CREATED, AI_SUMMARY_GENERATED
+  entityType   String?  // e.g. "patient", "invoice"
+  entityId     String?
+  patientId    String?  // For clinical context (if applicable)
+  ipAddress    String?
+  userAgent    String?
+  result       String   @default("SUCCESS") // SUCCESS | FAILURE
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  clinic   Clinic?  @relation(fields: [clinicId], references: [id], onDelete: SetNull)
+  actor    User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  patient  Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([patientId])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// SAAS SUBSCRIPTION DOMAIN (Phase 2)
+// Distinct from clinical Invoice/Payment. Amounts in integer paise.
+// See docs/SAAS-DECISIONS.md and docs/SAAS-SUBSCRIPTION-ERD.md
+// =============================================================================
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAYMENT_FAILED
+  GRACE_PERIOD
+  CANCELLED
+  EXPIRED
+  SUSPENDED
+}
+
+enum SubscriptionBillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionPaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum SubscriptionInvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+model SubscriptionPlan {
+  id               String                     @id @default(cuid())
+  code             String                     @unique // e.g. STANDARD, STANDARD_YEARLY
+  name             String
+  description      String?
+  monthlyPricePaise Int                       // display rate per month (integer paise)
+  currency         String                     @default("INR")
+  billingInterval  SubscriptionBillingInterval @default(MONTHLY)
+  maxStaffUsers    Int                        @default(5) // non-admin seats
+  maxAdminUsers    Int                        @default(1)
+  trialDays        Int                        @default(0)
+  isActive         Boolean                    @default(true)
+  sortOrder        Int                        @default(0)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  subscriptions Subscription[]
+  planFeatures  PlanFeature[]
+
+  @@index([isActive])
+  @@map("subscription_plans")
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  code        String   @unique // e.g. PATIENT_MANAGEMENT
+  name        String
+  description String?
+  module      String?  // aligns with HIS modules when useful
+  createdAt   DateTime @default(now())
+
+  planFeatures PlanFeature[]
+
+  @@index([module])
+  @@map("features")
+}
+
+model PlanFeature {
+  id         String   @id @default(cuid())
+  planId     String
+  featureId  String
+  createdAt  DateTime @default(now())
+
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature Feature          @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+  @@index([planId])
+  @@index([featureId])
+  @@map("plan_features")
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  clinicId               String
+  planId                 String
+
+  provider               String             @default("razorpay")
+  providerCustomerId     String?
+  providerSubscriptionId String?            @unique
+
+  status                 SubscriptionStatus @default(TRIALING)
+
+  amountPaise            Int
+  currency               String             @default("INR")
+  billingInterval        SubscriptionBillingInterval @default(MONTHLY)
+
+  startDate              DateTime?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+
+  trialStart             DateTime?
+  trialEnd               DateTime?
+
+  cancelAtPeriodEnd      Boolean            @default(false)
+  cancelledAt            DateTime?
+  endedAt                DateTime?
+
+  gracePeriodStart       DateTime?
+  gracePeriodEnd         DateTime?
+
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  clinic    Clinic             @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  plan      SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments  SubscriptionPayment[]
+  invoices  SubscriptionInvoice[]
+  events    SubscriptionEvent[]
+
+  @@index([clinicId])
+  @@index([clinicId, status])
+  @@index([planId])
+  @@index([status])
+  @@index([providerCustomerId])
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id                 String                   @id @default(cuid())
+  clinicId           String
+  subscriptionId     String
+
+  provider           String                   @default("razorpay")
+  providerPaymentId  String?                  @unique
+  providerOrderId    String?
+  providerInvoiceId  String?
+
+  amountPaise        Int
+  currency           String                   @default("INR")
+
+  status             SubscriptionPaymentStatus @default(PENDING)
+
+  paymentMethod      String?
+  failureReason      String?
+
+  paidAt             DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  clinic       Clinic       @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([providerOrderId])
+  @@map("subscription_payments")
+}
+
+model SubscriptionInvoice {
+  id               String                   @id @default(cuid())
+  clinicId         String
+  subscriptionId   String
+  invoiceNumber    String
+
+  amountPaise      Int
+  taxAmountPaise   Int                      @default(0)
+  discountAmountPaise Int                   @default(0)
+  totalAmountPaise Int
+  currency         String                   @default("INR")
+
+  status           SubscriptionInvoiceStatus @default(OPEN)
+
+  invoiceDate      DateTime                 @default(now())
+  dueDate          DateTime?
+  paidAt           DateTime?
+
+  pdfUrl           String?
+  providerInvoiceId String?
+
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  clinic       Clinic       @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, invoiceNumber])
+  @@unique([invoiceNumber])
+  @@index([clinicId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("subscription_invoices")
+}
+
+model WebhookEvent {
+  id           String    @id @default(cuid())
+  provider     String    // razorpay
+  eventId      String
+  eventType    String
+  payload      Json
+  signature    String?
+  processed    Boolean   @default(false)
+  processedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processed, createdAt])
+  @@index([eventType])
+  @@map("webhook_events")
+}
+
+model SubscriptionEvent {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  clinicId       String
+
+  eventType      String              // SUBSCRIPTION_CREATED, PLAN_UPGRADED, ...
+  oldStatus      SubscriptionStatus?
+  newStatus      SubscriptionStatus?
+
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  clinic       Clinic       @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId, createdAt])
+  @@index([clinicId, createdAt])
+  @@index([eventType])
+  @@map("subscription_events")
+}

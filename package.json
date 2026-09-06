@@ -1,0 +1,60 @@
+{
+  "name": "his-lite",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run start:dev --workspace=apps/api",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:web": "npm run test --workspace=apps/web",
+    "test:api": "npm run test --workspace=apps/api",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:migrate:dev": "npm run db:migrate:dev --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api",
+    "db:studio": "npm run db:studio --workspace=apps/api",
+    "db:push": "npm run db:push --workspace=apps/api",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:build": "docker compose build",
+    "docker:prod:config": "docker compose -f docker-compose.prod.yml --env-file .env.production config",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml --env-file .env.production build",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml --env-file .env.production up -d",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml --env-file .env.production down",
+    "docker:prod:migrate": "docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api npx prisma migrate deploy --schema=prisma/schema.prisma",
+    "docker:prod:logs": "docker compose -f docker-compose.prod.yml --env-file .env.production logs -f",
+    "docker:prod:ps": "docker compose -f docker-compose.prod.yml --env-file .env.production ps",
+    "docker:prod:backup": "docker compose -f docker-compose.prod.yml --env-file .env.production --profile backup up -d",
+    "load:smoke": "k6 run -e PROFILE=smoke load-tests/clinic-browse.js",
+    "load:clinic": "k6 run -e PROFILE=clinic load-tests/clinic-browse.js",
+    "load:spike": "k6 run -e PROFILE=spike load-tests/clinic-browse.js",
+    "load:login": "k6 run load-tests/login-storm.js",
+    "load:ai": "k6 run load-tests/ai-summary.js",
+    "load:smoke:docker": "docker run --rm -i -v \"%cd%/load-tests:/scripts\" grafana/k6:latest run -e PROFILE=smoke -e BASE_URL=http://host.docker.internal:4000 /scripts/clinic-browse.js",
+    "load:clinic:docker": "docker run --rm -i -v \"%cd%/load-tests:/scripts\" grafana/k6:latest run -e PROFILE=clinic -e BASE_URL=http://host.docker.internal:4000 /scripts/clinic-browse.js",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^9.0.11"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.8.0"
+}

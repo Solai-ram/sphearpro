@@ -1,0 +1,3 @@
+# Place Let's Encrypt (or staging) certs here when not using the certbot volume.
+# Preferred path on VPS: Docker volume `certbot-conf` mounted at /etc/letsencrypt
+# inside nginx + certbot containers (see docker-compose.prod.yml).

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@his-lite/shared-types": ["packages/shared-types/src"],
+      "@his-lite/eslint-config": ["packages/eslint-config"],
+      "@his-lite/tsconfig": ["packages/tsconfig"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", "**/node_modules/**"]
+}
