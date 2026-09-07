@@ -140,7 +140,7 @@ export function LoginPage() {
               id="email"
               type="email"
               className="input"
-              placeholder="you@clinic.com"
+              placeholder="enter your email"
               autoComplete="username"
               disabled={isLoading}
             />

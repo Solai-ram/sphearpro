@@ -1,29 +1,20 @@
-import { FormEvent, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PRODUCT_NAME } from '../lib/product';
 import { ProductLogo } from './ProductLogo';
 
 type AuthShellProps = {
   children: ReactNode;
-  /** login shows trial email CTA; signup focuses the free-trial promise */
+  /** login shows trial CTA */
   variant?: 'login' | 'signup' | 'default';
 };
 
 export function AuthShell({ children, variant = 'default' }: AuthShellProps) {
   const navigate = useNavigate();
-  const [trialEmail, setTrialEmail] = useState('');
 
   useEffect(() => {
     document.title = PRODUCT_NAME;
   }, []);
-
-  const startTrial = (event: FormEvent) => {
-    event.preventDefault();
-    const email = trialEmail.trim();
-    const params = new URLSearchParams();
-    if (email) params.set('email', email);
-    navigate(`/signup${params.toString() ? `?${params}` : ''}`);
-  };
 
   return (
     <div className="auth-screen">
@@ -40,33 +31,17 @@ export function AuthShell({ children, variant = 'default' }: AuthShellProps) {
               no card required to begin your trial.
             </p>
             <p className="auth-trial-sub">
-              Ready to try {PRODUCT_NAME}? Enter your work email to create your clinic.
+              Ready to try {PRODUCT_NAME}? Create your clinic to start your free trial.
             </p>
 
-            {variant !== 'signup' ? (
-              <form className="auth-trial-cta" onSubmit={startTrial}>
-                <label className="sr-only" htmlFor="trial-email">
-                  Email address
-                </label>
-                <input
-                  id="trial-email"
-                  type="email"
-                  className="auth-trial-input"
-                  placeholder="Email address"
-                  value={trialEmail}
-                  onChange={(e) => setTrialEmail(e.target.value)}
-                  autoComplete="email"
-                />
-                <button type="submit" className="auth-trial-btn">
-                  Get started
-                  <span aria-hidden="true">›</span>
-                </button>
-              </form>
-            ) : (
-              <p className="auth-trial-signup-note">
-                Complete the form to activate your 7-day free trial.
-              </p>
-            )}
+            <div className="auth-trial-cta">
+              <button type="button" className="auth-trial-btn" onClick={() => navigate('/signup')}>
+                <span className="auth-trial-btn-label">Get started</span>
+                <span className="auth-trial-btn-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
+            </div>
 
             <div className="auth-trial-links">
               <Link to="/pricing">See pricing</Link>

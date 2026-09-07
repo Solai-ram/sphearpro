@@ -14,6 +14,7 @@ import { randomBytes } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { MailService } from '../mail/mail.module';
 import { LoginDto } from './dto/login.dto';
 import { ClinicSignupDto } from './dto/clinic-signup.dto';
 import { User, PrismaClient } from '@prisma/client';
@@ -46,17 +47,28 @@ export class AuthService {
     @Inject('PRISMA_CLIENT') private prisma: PrismaClient,
     private auditService: AuditService,
     private subscriptions: SubscriptionService,
+    private mail: MailService,
   ) {}
 
   async registerClinic(dto: ClinicSignupDto, ipAddress?: string, userAgent?: string) {
     const email = dto.email.trim().toLowerCase();
-    const slug = dto.slug.trim().toLowerCase();
+    const baseSlug = (dto.slug?.trim() || dto.clinicName)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || `clinic-${Date.now().toString(36)}`;
 
     const existingEmail = await this.prisma.user.findUnique({ where: { email } });
     if (existingEmail) throw new ConflictException('Email already in use');
 
-    const existingSlug = await this.prisma.clinic.findUnique({ where: { slug } });
-    if (existingSlug) throw new ConflictException('Clinic slug already taken');
+    let slug = baseSlug;
+    for (let i = 0; i < 8; i += 1) {
+      const taken = await this.prisma.clinic.findUnique({ where: { slug } });
+      if (!taken) break;
+      slug = `${baseSlug.slice(0, 40)}-${(i + 2).toString(36)}`.slice(0, 48);
+    }
+    const stillTaken = await this.prisma.clinic.findUnique({ where: { slug } });
+    if (stillTaken) throw new ConflictException('Clinic slug already taken');
 
     const adminRole = await this.prisma.role.findFirst({ where: { name: 'ADMIN' } });
     if (!adminRole) {
@@ -76,6 +88,14 @@ export class AuthService {
           slug,
           email,
           phone: dto.phone?.trim() || null,
+          rciNumber: dto.rciNumber?.trim() || null,
+          address: {
+            street: dto.address.street?.trim() || undefined,
+            city: dto.address.city.trim(),
+            state: dto.address.state.trim(),
+            pincode: dto.address.pincode.trim(),
+            country: 'IN',
+          },
           status: 'ACTIVE',
         },
       });
@@ -304,9 +324,26 @@ export class AuthService {
     });
 
     const resetToken = `${id}.${secret}`;
-    // Dev-only: deliver via mail in production. Never log the token.
+    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const resetUrl = `${frontendBase}/reset-password/${encodeURIComponent(resetToken)}`;
+
+    try {
+      await this.mail.send({
+        to: email,
+        subject: 'Reset your SPHEAR password',
+        text: `Use this link to reset your password (expires in 1 hour):\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+        html: `<p>Use this link to reset your password. It expires in <strong>1 hour</strong>.</p><p><a href="${resetUrl}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Password reset email failed for ${email}: ${err instanceof Error ? err.message : err}`,
+      );
+      // Still return success below to avoid email enumeration.
+    }
+
+    // Dev fallback when SMTP (Mailpit) is not running — link is in API logs only.
     if (process.env.NODE_ENV !== 'production') {
-      this.logger.log(`Password reset link ready for ${email} (token not logged). Use /reset-password/${resetToken}`);
+      this.logger.log(`Password reset link ready for ${email}. Open: ${resetUrl}`);
     }
 
     await this.auditService.log({

@@ -60,7 +60,7 @@ export class MailService implements OnModuleInit {
       this.logger.warn(`Mail skipped (no transporter): ${input.subject} → ${input.to}`);
       return { skipped: true as const };
     }
-    const from = process.env.MAIL_FROM || 'noreply@hislite.local';
+    const from = process.env.MAIL_FROM || 'support@sphearpro.tech';
     try {
       const info = await this.transporter.sendMail({
         from,

@@ -33,6 +33,7 @@ model Clinic {
   phone     String?
   email     String?
   gstin     String?
+  rciNumber String?
   address   Json?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt

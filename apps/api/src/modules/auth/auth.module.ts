@@ -8,10 +8,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { AuditModule } from '../audit/audit.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     UsersModule,
+    MailModule,
     AuditModule,
     forwardRef(() => SubscriptionModule),
     PassportModule.register({ defaultStrategy: 'jwt' }),
