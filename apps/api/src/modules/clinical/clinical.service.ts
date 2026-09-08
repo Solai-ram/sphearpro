@@ -13,6 +13,7 @@ export interface CreateOpCaseInput {
   chiefComplaint?: string;
   vitals?: Record<string, any>;
   consultationFee?: number;
+  serviceId?: string;
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;
   createdBy?: string;
@@ -142,6 +143,7 @@ export class ClinicalService {
     if (data.consultationFee != null && data.consultationFee > 0) {
       await this.billConsultation(opCase.id, data.clinicId, {
         unitPrice: data.consultationFee,
+        serviceId: data.serviceId,
         paymentMethod: data.paymentMethod || 'CASH',
         paymentReference: data.paymentReference,
         createdBy: data.createdBy,
@@ -560,6 +562,7 @@ export class ClinicalService {
 
   private async billConsultation(opCaseId: string, clinicId: string, data: {
     unitPrice: number;
+    serviceId?: string;
     paymentMethod?: CreateOpCaseInput['paymentMethod'];
     paymentReference?: string;
     createdBy?: string;
@@ -581,6 +584,26 @@ export class ClinicalService {
       throw new BadRequestException('This OP visit already has a consultation invoice');
     }
 
+    let description = opCase.chiefComplaint
+      ? `Consultation fee — ${opCase.chiefComplaint}`
+      : 'Consultation fee';
+    let unitPrice = data.unitPrice;
+
+    if (data.serviceId) {
+      const service = await this.prisma.serviceMaster.findFirst({
+        where: { id: data.serviceId, clinicId, isActive: true },
+      });
+      if (!service) {
+        throw new BadRequestException('Selected service was not found or is inactive');
+      }
+      description = `${service.code} — ${service.name}`;
+      if (opCase.chiefComplaint) {
+        description = `${description} (${opCase.chiefComplaint})`;
+      }
+      // Prefer submitted fee (may be overridden), fallback to master price
+      if (unitPrice <= 0) unitPrice = Number(service.price);
+    }
+
     return this.billingService.createInvoice({
       clinicId,
       patientId: opCase.patientId,
@@ -590,17 +613,15 @@ export class ClinicalService {
         {
           billableType: 'OP_VISIT',
           referenceId: opCase.id,
-          description: opCase.chiefComplaint
-            ? `Consultation fee — ${opCase.chiefComplaint}`
-            : 'Consultation fee',
+          description,
           quantity: 1,
-          unitPrice: data.unitPrice,
+          unitPrice,
         },
       ],
       payment: data.paymentMethod
         ? {
             method: data.paymentMethod,
-            amount: data.unitPrice,
+            amount: unitPrice,
             reference: data.paymentReference,
           }
         : undefined,

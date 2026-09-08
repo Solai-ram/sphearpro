@@ -13,6 +13,7 @@ import { TherapyModule } from './modules/therapy/therapy.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LabModule } from './modules/lab/lab.module';
+import { ServicesModule } from './modules/services/services.module';
 import { AiModule } from './modules/ai/ai.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { StaffModule } from './modules/staff/staff.module';
@@ -63,6 +64,7 @@ import { HealthModule } from './common/health/health.module';
     BillingModule,
     InventoryModule,
     LabModule,
+    ServicesModule,
     AiModule,
     DocumentsModule,
     StaffModule,

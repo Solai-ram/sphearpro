@@ -557,9 +557,17 @@ export class PlatformAdminService {
       this.logger.warn(`Disk metrics unavailable for ${rootPath}: ${(err as Error).message}`);
     }
 
+    const [databaseBytes, applicationBytes] = await Promise.all([
+      this.postgresDatabaseBytes(),
+      this.applicationDocumentBytes(),
+    ]);
+
+    const diskBreakdown = this.buildDiskBreakdown(disk, databaseBytes, applicationBytes);
+
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
+    const load = typeof os.loadavg === 'function' ? os.loadavg() : [0, 0, 0];
 
     return {
       hostname: os.hostname(),
@@ -568,8 +576,14 @@ export class PlatformAdminService {
       uptimeSeconds: Math.floor(os.uptime()),
       uptimeDisplay: formatUptime(os.uptime()),
       cpuCount: os.cpus()?.length || 0,
+      loadAverage: {
+        one: Math.round(load[0] * 100) / 100,
+        five: Math.round(load[1] * 100) / 100,
+        fifteen: Math.round(load[2] * 100) / 100,
+      },
       nodeVersion: process.version,
       disk,
+      diskBreakdown,
       memory: {
         totalBytes: totalMem,
         usedBytes: usedMem,
@@ -580,6 +594,106 @@ export class PlatformAdminService {
         freeDisplay: formatBytes(freeMem),
       },
       collectedAt: new Date().toISOString(),
+    };
+  }
+
+  private async postgresDatabaseBytes(): Promise<number | null> {
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ size: bigint | number | string }>>`
+        SELECT pg_database_size(current_database()) AS size
+      `;
+      const raw = rows?.[0]?.size;
+      if (raw == null) return null;
+      return Number(raw);
+    } catch (err) {
+      this.logger.warn(`Postgres size unavailable: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  private async applicationDocumentBytes(): Promise<number> {
+    try {
+      const agg = await this.prisma.patientDocument.aggregate({
+        where: { isDeleted: false },
+        _sum: { sizeBytes: true },
+      });
+      return Number(agg._sum.sizeBytes || 0);
+    } catch (err) {
+      this.logger.warn(`Application storage sum unavailable: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  private buildDiskBreakdown(
+    disk: {
+      totalBytes: number;
+      usedBytes: number;
+      freeBytes: number;
+    } | null,
+    databaseBytes: number | null,
+    applicationBytes: number,
+  ) {
+    const total = disk?.totalBytes ?? 0;
+    const free = disk?.freeBytes ?? 0;
+    const used = disk?.usedBytes ?? 0;
+    const db = Math.max(0, databaseBytes ?? 0);
+    const app = Math.max(0, applicationBytes);
+    const known = db + app;
+    // Remainder of used space ≈ OS, Docker images, Redis, logs, MinIO blobs not in DB, etc.
+    const osOther = Math.max(0, used - known);
+
+    const pct = (bytes: number) =>
+      total > 0 ? Math.round((bytes / total) * 1000) / 10 : 0;
+
+    const items = [
+      {
+        key: 'database' as const,
+        label: 'Database (PostgreSQL)',
+        bytes: db,
+        display: formatBytes(db),
+        percentOfDisk: pct(db),
+        available: databaseBytes != null,
+      },
+      {
+        key: 'application' as const,
+        label: 'Application files',
+        bytes: app,
+        display: formatBytes(app),
+        percentOfDisk: pct(app),
+        available: true,
+        hint: 'Clinic documents tracked in the app (patient uploads)',
+      },
+      {
+        key: 'os' as const,
+        label: 'OS & other',
+        bytes: osOther,
+        display: formatBytes(osOther),
+        percentOfDisk: pct(osOther),
+        available: Boolean(disk),
+        hint: 'Operating system, Docker images, Redis, logs, and untracked storage',
+      },
+      {
+        key: 'free' as const,
+        label: 'Free space',
+        bytes: free,
+        display: formatBytes(free),
+        percentOfDisk: pct(free),
+        available: Boolean(disk),
+      },
+    ];
+
+    return {
+      totalBytes: total,
+      totalDisplay: formatBytes(total),
+      usedBytes: used,
+      usedDisplay: formatBytes(used),
+      items,
+      notes: [
+        databaseBytes == null
+          ? 'PostgreSQL size could not be read from this host.'
+          : null,
+        'Application files reflect document metadata sizes; object storage on a separate volume may differ.',
+      ].filter(Boolean) as string[],
     };
   }
 

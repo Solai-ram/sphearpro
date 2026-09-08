@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Loader2, ArrowLeft, User, IndianRupee, Calendar, AlertCircle, CheckCircle, Search, Printer } from 'lucide-react';
 import { clinicalApi } from '../../services/clinical';
 import { patientsApi, type PatientSearchHit } from '../../services/patients';
+import { servicesApi, type ServiceMaster } from '../../services/services';
 
 const PAY_METHODS = [
   { id: 'CASH' as const, label: 'Cash' },
@@ -15,6 +16,7 @@ const PAY_METHODS = [
 
 const createOpCaseSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
+  serviceId: z.string().min(1, 'Service is required'),
   consultationFee: z.string().min(1, 'Consultation fee is required').pipe(z.coerce.number().min(0, 'Fee cannot be negative')),
   paymentMethod: z.enum(['CASH', 'UPI', 'CARD']),
   paymentReference: z.string().optional(),
@@ -49,6 +51,7 @@ export function ClinicalCreatePage() {
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [lastOpSummary, setLastOpSummary] = useState<string | null>(null);
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
+  const [services, setServices] = useState<ServiceMaster[]>([]);
 
   const {
     register,
@@ -61,9 +64,44 @@ export function ClinicalCreatePage() {
     resolver: zodResolver(createOpCaseSchema) as any,
     defaultValues: {
       paymentMethod: 'CASH',
+      serviceId: '',
       vitals: {},
     },
   });
+
+  const selectedServiceId = watch('serviceId');
+
+  const filteredServices = useMemo(() => {
+    const preferred = isReview ? 'REVIEW' : 'CONSULTATION';
+    const preferredList = services.filter((s) => s.category === preferred);
+    const others = services.filter((s) => s.category !== preferred);
+    return [...preferredList, ...others];
+  }, [services, isReview]);
+
+  useEffect(() => {
+    servicesApi
+      .list({ activeOnly: true, limit: 200 })
+      .then((res) => setServices(res.data || []))
+      .catch(() => setServices([]));
+  }, []);
+
+  useEffect(() => {
+    if (!filteredServices.length) return;
+    const current = watch('serviceId');
+    if (current && filteredServices.some((s) => s.id === current)) return;
+    const preferred = isReview ? 'REVIEW' : 'CONSULTATION';
+    const pick = filteredServices.find((s) => s.category === preferred) || filteredServices[0];
+    if (pick) {
+      setValue('serviceId', pick.id);
+      setValue('consultationFee', String(pick.price));
+    }
+  }, [filteredServices, isReview, setValue, watch]);
+
+  useEffect(() => {
+    if (!selectedServiceId) return;
+    const service = services.find((s) => s.id === selectedServiceId);
+    if (service) setValue('consultationFee', String(service.price));
+  }, [selectedServiceId, services, setValue]);
 
   useEffect(() => {
     if (!presetPatientId) return;
@@ -116,6 +154,7 @@ export function ClinicalCreatePage() {
 
     try {
       const billing = {
+        serviceId: data.serviceId,
         consultationFee: data.consultationFee,
         paymentMethod: data.paymentMethod,
         paymentReference: data.paymentReference || undefined,
@@ -239,7 +278,28 @@ export function ClinicalCreatePage() {
             <IndianRupee className="w-4 h-4 text-blue-600" />
             Consultation fees
           </h2>
-          <label htmlFor="consultationFee" className="label">Amount *</label>
+          <label htmlFor="serviceId" className="label">Service *</label>
+          <select
+            {...register('serviceId')}
+            id="serviceId"
+            className="input"
+          >
+            <option value="">
+              {filteredServices.length ? 'Select service' : 'No services — add under Service masters'}
+            </option>
+            {filteredServices.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.code} — {s.name} (₹{Number(s.price).toFixed(2)})
+              </option>
+            ))}
+          </select>
+          {errors.serviceId && <p className="mt-1 text-sm text-red-600">{errors.serviceId.message}</p>}
+          {!filteredServices.length && (
+            <p className="mt-1 text-xs text-amber-700">
+              Create services in Patients → Service masters first.
+            </p>
+          )}
+          <label htmlFor="consultationFee" className="label mt-3">Amount *</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
             <input
@@ -253,6 +313,7 @@ export function ClinicalCreatePage() {
             />
           </div>
           {errors.consultationFee && <p className="mt-1 text-sm text-red-600">{errors.consultationFee.message}</p>}
+          <p className="mt-1 text-xs text-gray-500">Filled from the selected service; you can override if needed.</p>
           <label className="label mt-3">Mode of payment *</label>
           <div className="flex gap-2">
             {PAY_METHODS.map((m) => (

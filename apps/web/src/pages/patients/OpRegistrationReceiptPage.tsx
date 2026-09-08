@@ -8,10 +8,12 @@ import { settingsApi } from '../../services/admin';
 import type { OpCase } from '../../types/clinical';
 import { PRODUCT_MARK, PRODUCT_NAME } from '../../lib/product';
 import { ageFromDob, formatAddress } from '../../lib/age';
+import { LetterheadMark } from '../../components/LetterheadMark';
 
 type ClinicInfo = {
   name: string;
   mark: string;
+  logoUrl?: string | null;
   address?: string;
   phone?: string;
   email?: string;
@@ -99,20 +101,27 @@ export function OpRegistrationReceiptPage() {
         setError(err instanceof Error ? err.message : 'Failed to load registration');
       }
     })();
-    settingsApi.list().then((rows) => {
-      const map: Record<string, string> = {};
-      for (const row of rows) {
-        map[row.key] = typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : '';
-      }
-      const name = map['clinic.name'] || PRODUCT_NAME;
-      setClinic({
-        name,
-        mark: (map['clinic.logoText'] || initials(name)).slice(0, 4),
-        address: map['clinic.address'] || undefined,
-        phone: map['clinic.phone'] || undefined,
-        email: map['clinic.email'] || undefined,
-      });
-    }).catch(() => undefined);
+    Promise.all([
+      settingsApi.list(),
+      settingsApi.getLogo().catch(() => ({ url: null as string | null })),
+    ])
+      .then(([rows, logo]) => {
+        const map: Record<string, string> = {};
+        for (const row of rows) {
+          map[row.key] =
+            typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : '';
+        }
+        const name = map['clinic.name'] || PRODUCT_NAME;
+        setClinic({
+          name,
+          mark: (map['clinic.logoText'] || initials(name)).slice(0, 4),
+          logoUrl: logo.url,
+          address: map['clinic.address'] || undefined,
+          phone: map['clinic.phone'] || undefined,
+          email: map['clinic.email'] || undefined,
+        });
+      })
+      .catch(() => undefined);
   }, [id]);
 
   if (error) return <div className="p-8 text-red-600">{error}</div>;
@@ -149,7 +158,7 @@ export function OpRegistrationReceiptPage() {
       <article className="invoice-sheet op-receipt-sheet">
         <header className="invoice-masthead">
           <div className="invoice-brand">
-            <div className="invoice-mark" aria-hidden="true">{clinic.mark}</div>
+            <LetterheadMark logoUrl={clinic.logoUrl} mark={clinic.mark} />
             <div>
               <h1 className="invoice-clinic">{clinic.name}</h1>
               {clinic.address && <p className="invoice-muted">{clinic.address}</p>}

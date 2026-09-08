@@ -80,12 +80,13 @@ function quickActions(role: AppRole) {
     case 'DOCTOR':
       return [
         { to: '/doctor/sessions', label: 'My patients', icon: Stethoscope, primary: true },
-        { ...register, primary: false },
+        { to: '/appointments/day', label: 'Day schedule', icon: Clock, primary: false },
+        { to: '/patients/lookup', label: 'Patient search', icon: Users, primary: false },
       ];
     case 'RECEPTIONIST':
       return [register, appointments, daySchedule];
     case 'BILLING':
-      return [invoice];
+      return [invoice, { to: '/patients/lookup', label: 'Patient search', icon: Users, primary: false }];
     case 'INVENTORY':
       return [stock];
     default:

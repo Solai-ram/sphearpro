@@ -30,7 +30,7 @@ export function LabDashboardPage() {
   useEffect(() => {
     labApi.getDashboard()
       .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load lab dashboard'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load audio dashboard'))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -52,7 +52,7 @@ export function LabDashboardPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Lab dashboard</h1>
+          <h1 className="text-xl font-bold">Audio dashboard</h1>
           <p className="text-sm text-gray-500">Tests billed today, this week, and this month.</p>
         </div>
         <Link to="/lab/procedures/new" className="btn-primary">
@@ -120,7 +120,7 @@ export function LabDashboardPage() {
               ))}
               {(data?.executedByDepartment || []).length === 0 && (
                 <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={2}>No lab tests billed this month.</td>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={2}>No audio tests billed this month.</td>
                 </tr>
               )}
             </tbody>
@@ -159,7 +159,7 @@ export function LabDashboardPage() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-3 py-2 border-b text-sm font-semibold">Recently billed lab tests</div>
+        <div className="px-3 py-2 border-b text-sm font-semibold">Recently billed audio tests</div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
@@ -187,7 +187,7 @@ export function LabDashboardPage() {
             ))}
             {(data?.recentBilled || []).length === 0 && (
               <tr>
-                <td className="px-3 py-8 text-center text-gray-500" colSpan={6}>No lab tests on invoices yet.</td>
+                <td className="px-3 py-8 text-center text-gray-500" colSpan={6}>No audio tests on invoices yet.</td>
               </tr>
             )}
           </tbody>

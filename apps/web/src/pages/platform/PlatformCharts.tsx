@@ -312,3 +312,69 @@ export function SubscriptionStatusChart({
 
   return <ReactECharts option={option} style={{ height: 240 }} opts={{ renderer: 'svg' }} />;
 }
+
+const DISK_BREAKDOWN_COLORS: Record<string, string> = {
+  database: '#38bdf8',
+  application: '#a78bfa',
+  os: '#fbbf24',
+  free: '#334155',
+};
+
+export function DiskBreakdownChart({
+  items,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    bytes: number;
+    display: string;
+    percentOfDisk: number;
+  }>;
+}) {
+  const data = items.filter((i) => i.bytes > 0 || i.key === 'free');
+
+  const option = useMemo(() => {
+    if (!data.length) {
+      return {
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: { text: 'No disk data', fill: '#64748b', fontSize: 13 },
+        },
+      };
+    }
+    return {
+      tooltip: {
+        ...TOOLTIP_DARK,
+        trigger: 'item',
+        formatter: (p: { name: string; value: number; percent: number; data: { display?: string } }) =>
+          `${p.name}<br/><b>${p.data?.display || ''}</b> · ${p.percent}%`,
+      },
+      legend: {
+        orient: 'vertical',
+        right: 4,
+        top: 'middle',
+        textStyle: { color: '#94a3b8', fontSize: 11 },
+        itemWidth: 10,
+        itemHeight: 10,
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['46%', '72%'],
+          center: ['36%', '50%'],
+          label: { show: false },
+          data: data.map((row) => ({
+            name: row.label,
+            value: Math.max(row.bytes, row.key === 'free' && row.bytes === 0 ? 0.0001 : row.bytes),
+            display: row.display,
+            itemStyle: { color: DISK_BREAKDOWN_COLORS[row.key] || '#64748b' },
+          })),
+        },
+      ],
+    };
+  }, [data]);
+
+  return <ReactECharts option={option} style={{ height: 240 }} opts={{ renderer: 'svg' }} />;
+}

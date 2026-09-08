@@ -66,6 +66,7 @@ model Clinic {
   aiUsages                 AiUsage[]
   settings                 Setting[]
   labProcedures            LabProcedure[]
+  serviceMasters           ServiceMaster[]
   auditLogs                AuditLog[]
   discounts                Discount[]
   subscriptions            Subscription[]
@@ -1487,6 +1488,36 @@ model LabProcedure {
   @@index([isActive])
   @@index([name])
   @@map("lab_procedures")
+}
+
+/// Priced clinic services used in OP / review registration (consultation fee catalog).
+model ServiceMaster {
+  id          String               @id @default(cuid())
+  clinicId    String
+  code        String
+  name        String
+  category    ServiceMasterCategory @default(CONSULTATION)
+  price       Decimal              @db.Decimal(10, 2)
+  description String?
+  isActive    Boolean              @default(true)
+  createdBy   String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  @@unique([clinicId, code])
+  @@index([clinicId])
+  @@index([category])
+  @@index([isActive])
+  @@index([name])
+  @@map("service_masters")
+}
+
+enum ServiceMasterCategory {
+  CONSULTATION
+  REVIEW
+  OTHER
 }
 
 // =============================================================================

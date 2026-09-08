@@ -58,3 +58,25 @@ export function multerDocumentOptions(maxBytes = 50 * 1024 * 1024) {
     fileFilter: fileFilter('document'),
   };
 }
+
+const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
+const IMAGE_MIME = /^image\/(png|jpeg|gif|webp)$/i;
+
+export function multerImageOptions(maxBytes = 2 * 1024 * 1024) {
+  return {
+    storage: memoryStorage(),
+    limits: { fileSize: maxBytes },
+    fileFilter: (
+      _req: Request,
+      file: Express.Multer.File,
+      cb: (error: Error | null, acceptFile: boolean) => void,
+    ) => {
+      const ext = extOf(file.originalname || '');
+      const mime = file.mimetype || '';
+      if (!IMAGE_EXT.has(ext) && !IMAGE_MIME.test(mime)) {
+        return cb(new BadRequestException('Logo must be PNG, JPG, GIF, or WebP'), false);
+      }
+      cb(null, true);
+    },
+  };
+}

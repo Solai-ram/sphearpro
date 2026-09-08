@@ -1713,6 +1713,17 @@ button.pricing-cta:disabled {
   border-radius: 10px;
 }
 
+.invoice-mark-img {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--inv-line, #cbd5e1) 80%, transparent);
+  padding: 4px;
+}
+
 .invoice-clinic {
   margin: 0;
   font-size: 20px;

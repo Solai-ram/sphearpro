@@ -51,7 +51,7 @@ export function LabProcedureCreatePage() {
       setProcedures(list.data || []);
       setForm((prev) => ({ ...prev, department: prev.department || dept[0] || 'Audiology' }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load lab procedures');
+      setError(err instanceof Error ? err.message : 'Failed to load audio procedures');
     } finally {
       setIsLoading(false);
     }
@@ -86,9 +86,9 @@ export function LabProcedureCreatePage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <FlaskConical className="w-5 h-5 text-blue-600" /> Lab procedure creation
+            <FlaskConical className="w-5 h-5 text-blue-600" /> Audio procedure creation
           </h1>
-          <p className="text-sm text-gray-500">Add a test to the lab catalog.</p>
+          <p className="text-sm text-gray-500">Add a test to the audio catalog.</p>
         </div>
         <Link to="/lab" className="btn-ghost text-sm">Dashboard</Link>
       </div>

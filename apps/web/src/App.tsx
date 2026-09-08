@@ -34,6 +34,7 @@ import { InvoicePrintPage } from './pages/billing/InvoicePrintPage';
 import { BillingReportPage } from './pages/billing/BillingReportPage';
 import { RevenueReportPage } from './pages/billing/RevenueReportPage';
 import { OpRegistrationReceiptPage } from './pages/patients/OpRegistrationReceiptPage';
+import { ServiceMasterPage } from './pages/patients/ServiceMasterPage';
 import { PaymentsPage } from './pages/billing/PaymentsPage';
 import { InventoryOverviewPage } from './pages/inventory/InventoryOverviewPage';
 import { InventoryItemMasterPage } from './pages/inventory/InventoryItemMasterPage';
@@ -133,6 +134,7 @@ function App() {
         <Route path="/patients/lookup" element={<PatientSearchPage />} />
         <Route path="/patients/op-new" element={<ClinicalCreatePage />} />
         <Route path="/patients/op-review" element={<ClinicalCreatePage />} />
+        <Route path="/patients/services" element={<ServiceMasterPage />} />
         <Route path="/patients/op-report" element={<Navigate to="/patients" replace />} />
         <Route path="/patients/:id" element={<PatientDetailPage />} />
         <Route path="/patients/:id/edit" element={<PatientEditPage />} />
@@ -164,7 +166,7 @@ function App() {
         <Route path="/therapy/packages" element={<TherapyPackagesPage />} />
         <Route path="/therapy/:id" element={<TherapyDetailPage />} />
 
-        {/* Lab */}
+        {/* Audio (lab routes) */}
         <Route path="/lab" element={<LabDashboardPage />} />
         <Route path="/lab/procedures/new" element={<LabProcedureCreatePage />} />
 

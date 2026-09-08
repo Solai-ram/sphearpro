@@ -2,10 +2,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Download, Loader2, Printer } from 'lucide-react';
 import { settingsApi } from '../../services/admin';
 import { PRODUCT_MARK, PRODUCT_NAME } from '../../lib/product';
+import { LetterheadMark } from '../LetterheadMark';
 
 type ClinicLetterhead = {
   name: string;
   mark: string;
+  logoUrl?: string | null;
   address?: string;
   phone?: string;
   email?: string;
@@ -21,21 +23,27 @@ function initials(name: string) {
 function useClinicLetterhead() {
   const [clinic, setClinic] = useState<ClinicLetterhead>({ name: PRODUCT_NAME, mark: PRODUCT_MARK });
   useEffect(() => {
-    settingsApi.list().then((rows) => {
-      const map: Record<string, string> = {};
-      for (const row of rows) {
-        map[row.key] =
-          typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : '';
-      }
-      const name = map['clinic.name'] || PRODUCT_NAME;
-      setClinic({
-        name,
-        mark: map['clinic.logoText'] || initials(name),
-        address: map['clinic.address'],
-        phone: map['clinic.phone'],
-        email: map['clinic.email'],
-      });
-    }).catch(() => undefined);
+    Promise.all([
+      settingsApi.list(),
+      settingsApi.getLogo().catch(() => ({ url: null as string | null })),
+    ])
+      .then(([rows, logo]) => {
+        const map: Record<string, string> = {};
+        for (const row of rows) {
+          map[row.key] =
+            typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : '';
+        }
+        const name = map['clinic.name'] || PRODUCT_NAME;
+        setClinic({
+          name,
+          mark: map['clinic.logoText'] || initials(name),
+          logoUrl: logo.url,
+          address: map['clinic.address'],
+          phone: map['clinic.phone'],
+          email: map['clinic.email'],
+        });
+      })
+      .catch(() => undefined);
   }, []);
   return clinic;
 }
@@ -100,7 +108,7 @@ export function ReportPrintFrame({
         <article className="invoice-sheet">
           <header className="invoice-masthead">
             <div className="invoice-brand">
-              <div className="invoice-mark">{clinic.mark}</div>
+              <LetterheadMark logoUrl={clinic.logoUrl} mark={clinic.mark} />
               <div>
                 <p className="invoice-clinic">{clinic.name}</p>
                 {clinic.address && <p className="invoice-muted">{clinic.address}</p>}

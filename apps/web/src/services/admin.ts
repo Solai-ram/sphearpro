@@ -1,4 +1,4 @@
-import { fetchApi } from '../lib/api';
+import { fetchApi, getAccessToken, API_BASE } from '../lib/api';
 
 export interface Role {
   id: string;
@@ -108,5 +108,29 @@ export const settingsApi = {
   },
   save(items: Array<{ key: string; value: unknown; group?: string }>) {
     return fetchApi<Setting[]>('/settings', { method: 'PATCH', body: JSON.stringify({ items }) });
+  },
+  getLogo() {
+    return fetchApi<{ url: string | null; fileName: string; mimeType: string }>('/settings/logo');
+  },
+  async uploadLogo(file: File) {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(`${API_BASE}/settings/logo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
+      body: form,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(error.message || 'Logo upload failed');
+    }
+    return response.json() as Promise<{ url: string | null; fileName: string; mimeType: string }>;
+  },
+  removeLogo() {
+    return fetchApi<{ url: string | null; fileName: string; mimeType: string }>('/settings/logo', {
+      method: 'DELETE',
+    });
   },
 };

@@ -25,7 +25,7 @@ const REPORTS: {
   { id: 'clinical', name: 'OP clinical', hint: 'OP cases registered in the period', ranged: true, csv: 'clinical' },
   { id: 'op', name: 'OP visits', hint: 'Visit register for the selected period', ranged: true },
   { id: 'therapy', name: 'Therapy', hint: 'Cases, sessions, attendance and package use', ranged: true, csv: 'therapy' },
-  { id: 'lab', name: 'Lab', hint: 'Tests billed and procedure catalogue', ranged: false },
+  { id: 'lab', name: 'Audio', hint: 'Tests billed and procedure catalogue', ranged: false },
   { id: 'billing', name: 'Billing', hint: 'Invoices issued, billed vs collected', ranged: true },
   { id: 'revenue', name: 'Revenue', hint: 'Collections by payment mode and source', ranged: true, csv: 'financial' },
   { id: 'stock', name: 'Stock', hint: 'On-hand quantity, value and low stock', ranged: false, csv: 'inventory' },
@@ -36,7 +36,7 @@ const REPORTS: {
 
 const TYPE_LABEL: Record<string, string> = {
   OP_VISIT: 'Consultation',
-  LAB_TEST: 'Lab',
+  LAB_TEST: 'Audio',
   PRODUCT: 'Product',
   THERAPY_PACKAGE: 'Therapy package',
   THERAPY_SESSION: 'Therapy session',
@@ -307,7 +307,7 @@ function LabBody({ dashboard, procedures }: { dashboard: LabDashboard; procedure
               <td className="num">{money(row.revenue)}</td>
             </tr>
           ))}
-          {!(dashboard?.topProcedures || []).length && <EmptyRow cols={4} text="No billed lab tests yet." />}
+          {!(dashboard?.topProcedures || []).length && <EmptyRow cols={4} text="No billed audio tests yet." />}
         </tbody>
       </table>
       <p className="report-section">Catalogue</p>

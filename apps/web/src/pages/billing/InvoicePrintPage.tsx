@@ -10,7 +10,10 @@ import { PRODUCT_NAME } from '../../lib/product';
 const FALLBACK_TERMS =
   'Exempted from Sales Tax.\nReceived the above goods in sound condition & correct quantity.\nGoods once sold cannot be taken back.';
 
-function profileFromSettings(rows: Array<{ key: string; value: unknown }>): InvoiceClinicProfile {
+function profileFromSettings(
+  rows: Array<{ key: string; value: unknown }>,
+  logoUrl?: string | null,
+): InvoiceClinicProfile {
   const map: Record<string, string> = {};
   for (const row of rows) {
     map[row.key] =
@@ -28,6 +31,7 @@ function profileFromSettings(rows: Array<{ key: string; value: unknown }>): Invo
     clinicGstin: map['clinic.gstin'],
     clinicState: map['clinic.state'],
     clinicLogoText: map['clinic.logoText'],
+    clinicLogoUrl: logoUrl || null,
     invoiceTitle: map['invoice.title'] || 'Tax Invoice',
     invoiceTerms: map['invoice.terms'] || FALLBACK_TERMS,
   };
@@ -46,8 +50,11 @@ export function InvoicePrintPage() {
         const inv = await billingApi.getInvoice(id);
         setInvoice(inv);
         try {
-          const rows = await settingsApi.list();
-          setClinic(profileFromSettings(rows));
+          const [rows, logo] = await Promise.all([
+            settingsApi.list(),
+            settingsApi.getLogo().catch(() => ({ url: null as string | null })),
+          ]);
+          setClinic(profileFromSettings(rows, logo.url));
         } catch {
           const appearance = await fetch('/api/settings/appearance', { credentials: 'include' }).then((r) => r.json());
           setClinic({
@@ -58,6 +65,7 @@ export function InvoicePrintPage() {
             clinicGstin: appearance.clinicGstin,
             clinicState: appearance.clinicState,
             clinicLogoText: appearance.clinicLogoText,
+            clinicLogoUrl: null,
             invoiceTitle: appearance.invoiceTitle || 'Tax Invoice',
             invoiceTerms: appearance.invoiceTerms || FALLBACK_TERMS,
           });

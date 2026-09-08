@@ -13,7 +13,7 @@ const TYPE_LABEL: Record<string, string> = {
   THERAPY_PACKAGE: 'Therapy package',
   THERAPY_SESSION: 'Therapy session',
   PRODUCT: 'Product',
-  LAB_TEST: 'Lab',
+  LAB_TEST: 'Audio',
   OTHER: 'Other',
 };
 

@@ -1,6 +1,7 @@
 import type { Invoice, InvoiceStatus } from '../../types/billing';
 import { amountInWordsInr, formatPatientAddress } from '../../lib/invoice';
 import { PRODUCT_NAME } from '../../lib/product';
+import { LetterheadMark } from '../LetterheadMark';
 
 export type InvoiceClinicProfile = {
   clinicName: string;
@@ -10,6 +11,7 @@ export type InvoiceClinicProfile = {
   clinicGstin?: string;
   clinicState?: string;
   clinicLogoText?: string;
+  clinicLogoUrl?: string | null;
   invoiceTitle?: string;
   invoiceTerms?: string;
 };
@@ -19,7 +21,7 @@ const TYPE_LABEL: Record<string, string> = {
   THERAPY_PACKAGE: 'Therapy package',
   THERAPY_SESSION: 'Therapy session',
   PRODUCT: 'Product',
-  LAB_TEST: 'Lab test',
+  LAB_TEST: 'Audio test',
   OTHER: 'Service',
 };
 
@@ -99,7 +101,7 @@ export function InvoiceDocument({ invoice, clinic }: { invoice: Invoice; clinic:
     <article className="invoice-sheet">
       <header className="invoice-masthead">
         <div className="invoice-brand">
-          <div className="invoice-mark" aria-hidden="true">{mark}</div>
+          <LetterheadMark logoUrl={clinic.clinicLogoUrl} mark={mark} />
           <div>
             <h1 className="invoice-clinic">{clinicName}</h1>
             {clinic.clinicAddress && <p className="invoice-muted">{clinic.clinicAddress}</p>}

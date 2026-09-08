@@ -15,7 +15,7 @@ type Category = 'PRODUCT' | 'LAB' | 'THERAPY';
 
 const CATEGORIES: { id: Category; title: string; hint: string; icon: typeof Package }[] = [
   { id: 'PRODUCT', title: 'Product', hint: 'Hearing aids, accessories, stock items', icon: Package },
-  { id: 'LAB', title: 'Lab', hint: 'Audiology and diagnostic tests', icon: FlaskConical },
+  { id: 'LAB', title: 'Audio', hint: 'Audiology and diagnostic tests', icon: FlaskConical },
   { id: 'THERAPY', title: 'Therapy', hint: 'Therapy packages and sessions', icon: Pill },
 ];
 
@@ -242,7 +242,7 @@ export function InvoiceCreatePage() {
               )}
               {category === 'LAB' && (
                 <select className="input" value={item.referenceId || ''} onChange={(e) => applyLab(index, e.target.value)} required>
-                  <option value="">Select lab test</option>
+                  <option value="">Select audio test</option>
                   {labCatalog.filter((p) => p.isActive !== false).map((p) => (
                     <option key={p.id} value={p.id}>{p.code} — {p.name} · {p.department} · ₹{Number(p.price).toFixed(2)}</option>
                   ))}

@@ -7,7 +7,18 @@ import {
   ResourceCompareBarChart,
   ResourceDonutChart,
   SubscriptionStatusChart,
+  DiskBreakdownChart,
 } from './PlatformCharts';
+
+type DiskBreakdownItem = {
+  key: 'database' | 'application' | 'os' | 'free' | string;
+  label: string;
+  bytes: number;
+  display: string;
+  percentOfDisk: number;
+  available?: boolean;
+  hint?: string;
+};
 
 type Infra = {
   hostname: string;
@@ -16,6 +27,7 @@ type Infra = {
   uptimeDisplay: string;
   cpuCount: number;
   nodeVersion: string;
+  loadAverage?: { one: number; five: number; fifteen: number };
   disk: {
     path: string;
     usedPercent: number;
@@ -23,6 +35,12 @@ type Infra = {
     freeDisplay: string;
     totalDisplay: string;
   } | null;
+  diskBreakdown?: {
+    totalDisplay: string;
+    usedDisplay: string;
+    items: DiskBreakdownItem[];
+    notes?: string[];
+  };
   memory: {
     usedPercent: number;
     usedDisplay: string;
@@ -193,6 +211,14 @@ export function PlatformDashboardPage() {
                 <dt className="text-slate-400">CPUs</dt>
                 <dd className="font-medium text-slate-100">{infra?.cpuCount || '—'}</dd>
               </div>
+              {infra?.loadAverage && infra.platform !== 'win32' ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-400">Load (1/5/15)</dt>
+                  <dd className="font-medium text-slate-100">
+                    {infra.loadAverage.one} / {infra.loadAverage.five} / {infra.loadAverage.fifteen}
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-3">
                 <dt className="text-slate-400">OS</dt>
                 <dd className="font-medium text-slate-100">
@@ -210,6 +236,69 @@ export function PlatformDashboardPage() {
             </dl>
           </div>
         </div>
+
+        {infra?.diskBreakdown?.items?.length ? (
+          <div className="mt-4 rounded-2xl border border-slate-700/80 bg-slate-900/80 p-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Disk usage details
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Breakdown of host volume
+                  {infra.diskBreakdown.totalDisplay
+                    ? ` · ${infra.diskBreakdown.usedDisplay} used of ${infra.diskBreakdown.totalDisplay}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              <DiskBreakdownChart items={infra.diskBreakdown.items} />
+              <div className="space-y-3">
+                {infra.diskBreakdown.items.map((item) => (
+                  <div key={item.key}>
+                    <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                      <span className="text-slate-300">{item.label}</span>
+                      <span className="font-medium text-slate-100">
+                        {item.display}
+                        <span className="ml-2 text-xs font-normal text-slate-500">
+                          {item.percentOfDisk}%
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, item.percentOfDisk))}%`,
+                          background:
+                            item.key === 'database'
+                              ? '#38bdf8'
+                              : item.key === 'application'
+                                ? '#a78bfa'
+                                : item.key === 'os'
+                                  ? '#fbbf24'
+                                  : '#475569',
+                        }}
+                      />
+                    </div>
+                    {item.hint ? (
+                      <p className="mt-1 text-[11px] text-slate-500">{item.hint}</p>
+                    ) : null}
+                  </div>
+                ))}
+                {infra.diskBreakdown.notes?.length ? (
+                  <ul className="mt-2 space-y-1 border-t border-slate-800 pt-3 text-[11px] text-slate-500">
+                    {infra.diskBreakdown.notes.map((note) => (
+                      <li key={note}>· {note}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-5">

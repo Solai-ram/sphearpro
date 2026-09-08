@@ -19,7 +19,7 @@ const METHOD_LABEL: Record<string, string> = {
 
 const TYPE_LABEL: Record<string, string> = {
   OP_VISIT: 'Consultation',
-  LAB_TEST: 'Lab',
+  LAB_TEST: 'Audio',
   PRODUCT: 'Product',
   THERAPY_PACKAGE: 'Therapy package',
   THERAPY_SESSION: 'Therapy session',

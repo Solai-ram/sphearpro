@@ -108,6 +108,7 @@ export interface CreateOpCaseInput {
   chiefComplaint?: string;
   vitals?: Record<string, any>;
   consultationFee?: number;
+  serviceId?: string;
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;
 }
