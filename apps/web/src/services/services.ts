@@ -39,7 +39,7 @@ export const servicesApi = {
     return fetchApi<Paginated<ServiceMaster>>(`/services?${q.toString()}`);
   },
   create(data: {
-    code: string;
+    code?: string;
     name: string;
     category?: ServiceMasterCategory;
     price: number;

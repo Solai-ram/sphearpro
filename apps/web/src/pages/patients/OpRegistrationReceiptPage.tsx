@@ -17,6 +17,9 @@ type ClinicInfo = {
   address?: string;
   phone?: string;
   email?: string;
+  patientIdLabel?: string;
+  opTitle?: string;
+  reviewTitle?: string;
 };
 
 type PatientCard = {
@@ -119,6 +122,9 @@ export function OpRegistrationReceiptPage() {
           address: map['clinic.address'] || undefined,
           phone: map['clinic.phone'] || undefined,
           email: map['clinic.email'] || undefined,
+          patientIdLabel: map['patient.idLabel'] || 'Patient ID',
+          opTitle: map['receipt.opTitle'] || 'OP Registration Receipt',
+          reviewTitle: map['receipt.reviewTitle'] || 'OP Review Receipt',
         });
       })
       .catch(() => undefined);
@@ -135,10 +141,13 @@ export function OpRegistrationReceiptPage() {
 
   const age = ageFromDob(patient.dateOfBirth);
   const when = new Date(opCase.createdAt);
-  const title = isReview ? 'OP Review Receipt' : 'OP Registration Receipt';
+  const title = isReview
+    ? clinic.reviewTitle || 'OP Review Receipt'
+    : clinic.opTitle || 'OP Registration Receipt';
   const visitLabel = isReview ? 'Review visit' : 'New registration';
   const address = formatAddress(patient.address);
   const gender = genderLabel(patient.gender);
+  const idLabel = clinic.patientIdLabel || 'Patient ID';
 
   return (
     <div className="invoice-preview">
@@ -176,7 +185,7 @@ export function OpRegistrationReceiptPage() {
 
         <div className="op-receipt-idbar">
           <div>
-            <span>Patient ID</span>
+            <span>{idLabel}</span>
             <strong>{patient.patientNumber || '—'}</strong>
           </div>
           <div>

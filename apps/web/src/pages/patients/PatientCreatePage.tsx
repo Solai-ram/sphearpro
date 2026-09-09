@@ -1,11 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, ArrowLeft, User, Phone, Mail, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  Loader2,
+  ArrowLeft,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  AlertCircle,
+  CheckCircle,
+  IndianRupee,
+  Printer,
+} from 'lucide-react';
 import { patientsApi } from '../../services/patients';
+import { clinicalApi } from '../../services/clinical';
+import { servicesApi, type ServiceMaster } from '../../services/services';
 import { dobFromAgeYears } from '../../lib/age';
+
+const PAY_METHODS = [
+  { id: 'CASH' as const, label: 'Cash' },
+  { id: 'UPI' as const, label: 'UPI' },
+  { id: 'CARD' as const, label: 'Card' },
+];
 
 const requiredText = (message: string) => z.string().trim().min(1, message);
 
@@ -36,6 +55,12 @@ function patientSchema(forOp: boolean) {
       phone: z.string().optional(),
       relationship: z.string().optional(),
     }).optional(),
+    serviceId: forOp ? z.string().min(1, 'Service is required') : z.string().optional(),
+    consultationFee: forOp
+      ? z.string().min(1, 'Price is required').pipe(z.coerce.number().min(0, 'Price cannot be negative'))
+      : z.string().optional(),
+    paymentMethod: forOp ? z.enum(['CASH', 'UPI', 'CARD']) : z.enum(['CASH', 'UPI', 'CARD']).optional(),
+    paymentReference: z.string().optional(),
   });
 }
 
@@ -48,10 +73,14 @@ export function PatientCreatePage() {
   const forOp = params.get('intent') === 'op';
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [services, setServices] = useState<ServiceMaster[]>([]);
+  const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<PatientFormInput, unknown, PatientForm>({
     // zodResolver input/output diverge when schemas use .pipe(z.coerce…)
@@ -60,8 +89,41 @@ export function PatientCreatePage() {
       gender: forOp ? undefined : 'UNKNOWN',
       address: forOp ? { line: '' } : { country: 'India' },
       emergencyContact: {},
+      serviceId: '',
+      paymentMethod: 'CASH',
     },
   });
+
+  const selectedServiceId = watch('serviceId');
+  const paymentMethod = watch('paymentMethod');
+
+  const sortedServices = useMemo(
+    () => [...services].sort((a, b) => a.name.localeCompare(b.name)),
+    [services],
+  );
+
+  useEffect(() => {
+    if (!forOp) return;
+    servicesApi
+      .list({ activeOnly: true, limit: 200 })
+      .then((res) => setServices(res.data || []))
+      .catch(() => setServices([]));
+  }, [forOp]);
+
+  useEffect(() => {
+    if (!forOp || !sortedServices.length) return;
+    const current = watch('serviceId');
+    if (current && sortedServices.some((s) => s.id === current)) return;
+    const pick = sortedServices[0];
+    setValue('serviceId', pick.id);
+    setValue('consultationFee', String(pick.price));
+  }, [forOp, sortedServices, setValue, watch]);
+
+  useEffect(() => {
+    if (!forOp || !selectedServiceId) return;
+    const service = services.find((s) => s.id === selectedServiceId);
+    if (service) setValue('consultationFee', String(service.price));
+  }, [forOp, selectedServiceId, services, setValue]);
 
   const onSubmit = async (data: PatientForm) => {
     setIsLoading(true);
@@ -92,7 +154,14 @@ export function PatientCreatePage() {
 
       const result = await patientsApi.create(payload);
       if (forOp && result?.id) {
-        navigate(`/patients/op-new?patientId=${result.id}`);
+        const opCase = await clinicalApi.create({
+          patientId: result.id,
+          serviceId: data.serviceId!,
+          consultationFee: data.consultationFee as number,
+          paymentMethod: data.paymentMethod || 'CASH',
+          paymentReference: data.paymentReference || undefined,
+        });
+        setCreatedCaseId(opCase.id);
       } else {
         navigate(`/patients/${result.id}`);
       }
@@ -310,6 +379,91 @@ export function PatientCreatePage() {
           )}
         </section>
 
+        {forOp && (
+          <section>
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2 text-sm mb-2">
+              <IndianRupee className="w-4 h-4 text-blue-600" />
+              Service &amp; payment
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-2">
+              <div>
+                <label htmlFor="serviceId" className={label}>Service *</label>
+                <select {...register('serviceId')} id="serviceId" className={field}>
+                  <option value="">
+                    {sortedServices.length ? 'Select service' : 'No services — add under Service masters'}
+                  </option>
+                  {sortedServices.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — ₹{Number(s.price).toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+                {errors.serviceId && (
+                  <p className="mt-1 text-sm text-red-600">{String(errors.serviceId.message)}</p>
+                )}
+                {!sortedServices.length && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    Create services in Patients → Service masters first.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="consultationFee" className={label}>Price (₹) *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                  <input
+                    {...register('consultationFee')}
+                    id="consultationFee"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className={`${field} pl-7`}
+                    readOnly
+                  />
+                </div>
+                {errors.consultationFee && (
+                  <p className="mt-1 text-sm text-red-600">{String(errors.consultationFee.message)}</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className={label}>Mode of payment *</label>
+                <div className="flex gap-2">
+                  {PAY_METHODS.map((m) => (
+                    <label
+                      key={m.id}
+                      className={`flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center text-sm ${
+                        paymentMethod === m.id
+                          ? 'border-blue-500 bg-blue-50 text-blue-800'
+                          : 'border-gray-200 text-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={m.id}
+                        className="sr-only"
+                        {...register('paymentMethod')}
+                      />
+                      {m.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {(paymentMethod === 'UPI' || paymentMethod === 'CARD') && (
+                <div className="md:col-span-2">
+                  <label htmlFor="paymentReference" className={label}>Payment reference</label>
+                  <input
+                    {...register('paymentReference')}
+                    id="paymentReference"
+                    type="text"
+                    className={field}
+                    placeholder="UPI / card reference (optional)"
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {!forOp && (
         <section>
           <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
@@ -356,21 +510,50 @@ export function PatientCreatePage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Cancel
           </button>
-          <button type="submit" className="btn-primary" disabled={isLoading}>
+          <button type="submit" className="btn-primary" disabled={isLoading || (forOp && !sortedServices.length)}>
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating...
+                {forOp ? 'Registering...' : 'Creating...'}
               </span>
             ) : (
               <>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {forOp ? 'Continue' : 'Create Patient'}
+                {forOp ? 'Register OP' : 'Create Patient'}
               </>
             )}
           </button>
         </div>
       </form>
+
+      {createdCaseId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">OP registered</h2>
+                <p className="text-sm text-gray-500 mt-1">Bill created. Do you want to print the receipt?</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => navigate('/patients')}>
+                No, skip
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => navigate(`/patients/op-receipt/${createdCaseId}`)}
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Yes, print receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

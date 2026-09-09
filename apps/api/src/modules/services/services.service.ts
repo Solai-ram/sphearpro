@@ -68,8 +68,28 @@ export class ServicesService {
     return serialize(row);
   }
 
+  private async nextUniqueCode(clinicId: string, name: string) {
+    const base =
+      name
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 24) || 'SVC';
+    let code = base;
+    let n = 1;
+    for (;;) {
+      const existing = await this.prisma.serviceMaster.findUnique({
+        where: { clinicId_code: { clinicId, code } },
+      });
+      if (!existing) return code;
+      n += 1;
+      code = `${base}-${n}`.slice(0, 32);
+    }
+  }
+
   async create(data: {
-    code: string;
+    code?: string;
     name: string;
     category?: ServiceMasterCategory;
     price: number;
@@ -78,9 +98,7 @@ export class ServicesService {
     createdBy?: string;
     clinicId: string;
   }) {
-    const code = data.code?.trim().toUpperCase();
     const name = data.name?.trim();
-    if (!code) throw new BadRequestException('code is required');
     if (!name) throw new BadRequestException('name is required');
     if (data.price == null || Number(data.price) < 0) {
       throw new BadRequestException('price must be 0 or greater');
@@ -90,10 +108,15 @@ export class ServicesService {
       throw new BadRequestException('Invalid category');
     }
 
-    const existing = await this.prisma.serviceMaster.findUnique({
-      where: { clinicId_code: { clinicId: data.clinicId, code } },
-    });
-    if (existing) throw new ConflictException(`Service code ${code} already exists`);
+    let code = data.code?.trim().toUpperCase();
+    if (!code) {
+      code = await this.nextUniqueCode(data.clinicId, name);
+    } else {
+      const existing = await this.prisma.serviceMaster.findUnique({
+        where: { clinicId_code: { clinicId: data.clinicId, code } },
+      });
+      if (existing) throw new ConflictException(`Service code ${code} already exists`);
+    }
 
     const row = await this.prisma.serviceMaster.create({
       data: {

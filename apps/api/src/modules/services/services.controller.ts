@@ -51,7 +51,7 @@ export class ServicesController {
   create(
     @Body()
     body: {
-      code: string;
+      code?: string;
       name: string;
       category?: ServiceMasterCategory;
       price: number;
@@ -61,8 +61,11 @@ export class ServicesController {
     },
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
-    if (!body?.code || !body?.name) {
-      throw new BadRequestException('code and name are required');
+    if (!body?.name) {
+      throw new BadRequestException('name is required');
+    }
+    if (body.price == null) {
+      throw new BadRequestException('price is required');
     }
     const { clinicId: _ignored, ...rest } = body;
     return this.servicesService.create({

@@ -14,6 +14,7 @@ export type InvoiceClinicProfile = {
   clinicLogoUrl?: string | null;
   invoiceTitle?: string;
   invoiceTerms?: string;
+  patientIdLabel?: string;
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -131,7 +132,9 @@ export function InvoiceDocument({ invoice, clinic }: { invoice: Invoice; clinic:
           <p className="invoice-label">Bill to</p>
           <p className="invoice-party-name">{invoice.patient?.name || 'Patient'}</p>
           {invoice.patient?.patientNumber && (
-            <p className="invoice-muted">UHID {invoice.patient.patientNumber}</p>
+            <p className="invoice-muted">
+              {clinic.patientIdLabel || 'UHID'} {invoice.patient.patientNumber}
+            </p>
           )}
           {formatPatientAddress(invoice.patient?.address) && (
             <p className="invoice-muted">{formatPatientAddress(invoice.patient?.address)}</p>

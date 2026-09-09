@@ -102,10 +102,16 @@ export function LoginPage() {
       setAccessToken(result.accessToken);
       await refresh();
 
-      const me = await fetchApi<{ roles?: string[] }>('/auth/me');
+      const me = await fetchApi<{ roles?: string[]; setupComplete?: boolean }>('/auth/me');
       const roles = me.roles || [];
       const isPlatformOnly = roles.includes('SUPER_ADMIN') && !roles.includes('ADMIN');
-      navigate(isPlatformOnly ? '/platform' : from, { replace: true });
+      if (isPlatformOnly) {
+        navigate('/platform', { replace: true });
+      } else if (me.setupComplete === false && roles.includes('ADMIN')) {
+        navigate('/setup', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       if (err instanceof TypeError) {
         setError('Cannot reach the API. Waiting for the server to finish restarting — try again in a moment.');

@@ -30,12 +30,28 @@ export const SUBSCRIPTION_OPEN_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/platform',
+  '/setup',
 ];
 
 export function isSubscriptionOpenPath(pathname: string): boolean {
   return SUBSCRIPTION_OPEN_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
+}
+
+/** Clinic setup after subscribe — ADMIN only; skip support / platform users. */
+export function needsClinicSetup(user: {
+  roles?: string[];
+  isSystemSupport?: boolean;
+  setupComplete?: boolean;
+  subscriptionAccess?: { allowed?: boolean } | null;
+} | null): boolean {
+  if (!user) return false;
+  if (user.isSystemSupport) return false;
+  if (user.roles?.includes('SUPER_ADMIN') && !user.roles?.includes('ADMIN')) return false;
+  if (!user.roles?.includes('ADMIN')) return false;
+  if (user.subscriptionAccess && user.subscriptionAccess.allowed === false) return false;
+  return user.setupComplete === false;
 }
 
 export function SubscriptionAccessProvider({ children }: { children: ReactNode }) {

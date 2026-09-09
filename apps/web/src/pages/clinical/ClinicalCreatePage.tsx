@@ -71,12 +71,10 @@ export function ClinicalCreatePage() {
 
   const selectedServiceId = watch('serviceId');
 
-  const filteredServices = useMemo(() => {
-    const preferred = isReview ? 'REVIEW' : 'CONSULTATION';
-    const preferredList = services.filter((s) => s.category === preferred);
-    const others = services.filter((s) => s.category !== preferred);
-    return [...preferredList, ...others];
-  }, [services, isReview]);
+  const filteredServices = useMemo(
+    () => [...services].sort((a, b) => a.name.localeCompare(b.name)),
+    [services],
+  );
 
   useEffect(() => {
     servicesApi
@@ -89,13 +87,12 @@ export function ClinicalCreatePage() {
     if (!filteredServices.length) return;
     const current = watch('serviceId');
     if (current && filteredServices.some((s) => s.id === current)) return;
-    const preferred = isReview ? 'REVIEW' : 'CONSULTATION';
-    const pick = filteredServices.find((s) => s.category === preferred) || filteredServices[0];
+    const pick = filteredServices[0];
     if (pick) {
       setValue('serviceId', pick.id);
       setValue('consultationFee', String(pick.price));
     }
-  }, [filteredServices, isReview, setValue, watch]);
+  }, [filteredServices, setValue, watch]);
 
   useEffect(() => {
     if (!selectedServiceId) return;
@@ -289,7 +286,7 @@ export function ClinicalCreatePage() {
             </option>
             {filteredServices.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.code} — {s.name} (₹{Number(s.price).toFixed(2)})
+                {s.name} — ₹{Number(s.price).toFixed(2)}
               </option>
             ))}
           </select>
@@ -299,7 +296,7 @@ export function ClinicalCreatePage() {
               Create services in Patients → Service masters first.
             </p>
           )}
-          <label htmlFor="consultationFee" className="label mt-3">Amount *</label>
+          <label htmlFor="consultationFee" className="label mt-3">Price (₹) *</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
             <input
@@ -310,10 +307,11 @@ export function ClinicalCreatePage() {
               step="0.01"
               className="input pl-7"
               placeholder="0.00"
+              readOnly
             />
           </div>
           {errors.consultationFee && <p className="mt-1 text-sm text-red-600">{errors.consultationFee.message}</p>}
-          <p className="mt-1 text-xs text-gray-500">Filled from the selected service; you can override if needed.</p>
+          <p className="mt-1 text-xs text-gray-500">Auto-filled from the selected service. Bill is created on register.</p>
           <label className="label mt-3">Mode of payment *</label>
           <div className="flex gap-2">
             {PAY_METHODS.map((m) => (

@@ -10,6 +10,7 @@ import { CommunicationService } from '../communication/communication.service';
 import { buildTextPdf } from './pdf';
 import { amountInWordsInr } from './inr-words';
 import { resolveRange } from '../dashboard/dashboard.service';
+import { nextDocumentNumber } from '../../common/numbering/document-number';
 
 export type BillableType = 'OP_VISIT' | 'THERAPY_PACKAGE' | 'THERAPY_SESSION' | 'PRODUCT' | 'LAB_TEST' | 'OTHER';
 export type PaymentMethod = 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
@@ -829,15 +830,14 @@ export class BillingService {
   }
 
   private async nextInvoiceNumber(clinicId: string): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `INV-${year}-`;
-    const last = await this.prisma.invoice.findFirst({
-      where: { clinicId, invoiceNumber: { startsWith: prefix } },
-      orderBy: { invoiceNumber: 'desc' },
-      select: { invoiceNumber: true },
+    return nextDocumentNumber(this.prisma, clinicId, 'invoice', async (stem) => {
+      const last = await this.prisma.invoice.findFirst({
+        where: { clinicId, invoiceNumber: { startsWith: stem } },
+        orderBy: { invoiceNumber: 'desc' },
+        select: { invoiceNumber: true },
+      });
+      return last?.invoiceNumber;
     });
-    const seq = last ? parseInt(last.invoiceNumber.slice(prefix.length), 10) + 1 : 1;
-    return `${prefix}${String(seq).padStart(6, '0')}`;
   }
 
   private async addTimelineEvent(data: {

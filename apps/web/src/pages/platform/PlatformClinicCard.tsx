@@ -224,7 +224,10 @@ export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
         <div className="mt-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
           <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300">
             <KeyRound className="h-3 w-3" />
-            Support super admin
+            Your access for this clinic
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+            Platform owner login — open this clinic with full admin rights. Not a clinic user seat.
           </p>
           <div className="mt-2 space-y-1.5 text-xs">
             <div className="flex items-center gap-2">
@@ -284,12 +287,9 @@ export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
             ) : (
               <LogIn className="h-4 w-4" />
             )}
-            {loggingIn ? 'Opening clinic…' : 'Login to clinic'}
+            {loggingIn ? 'Opening clinic…' : 'Enter clinic as platform admin'}
           </button>
           {loginError && <p className="mt-2 text-xs text-rose-300">{loginError}</p>}
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-            Full ADMIN access for support. Does not count toward seat limits.
-          </p>
         </div>
       )}
 

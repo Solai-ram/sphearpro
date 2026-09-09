@@ -596,7 +596,7 @@ export class ClinicalService {
       if (!service) {
         throw new BadRequestException('Selected service was not found or is inactive');
       }
-      description = `${service.code} — ${service.name}`;
+      description = service.name;
       if (opCase.chiefComplaint) {
         description = `${description} (${opCase.chiefComplaint})`;
       }

@@ -1,15 +1,16 @@
 import type { PrismaClient } from '@prisma/client';
 
-/** Monthly billing — ₹1,800/mo */
+/** Monthly billing — ₹2,300/mo */
 export const STANDARD_PLAN_CODE = 'STANDARD';
 export const STANDARD_YEARLY_CODE = 'STANDARD_YEARLY';
-export const STANDARD_PRICE_PAISE = 180_000;
-export const STANDARD_YEARLY_MONTHLY_PAISE = 150_000;
-export const STANDARD_MAX_STAFF = 5;
+export const STANDARD_PRICE_PAISE = 230_000;
+/** Yearly display rate — ₹1,800/mo effective (₹21,600/year) */
+export const STANDARD_YEARLY_MONTHLY_PAISE = 180_000;
+export const STANDARD_MAX_STAFF = 10;
 export const STANDARD_MAX_ADMIN = 1;
 
 const PLAN_BODY =
-  'Full clinic HIS for up to 5 staff users + 1 admin: patients, OP, therapy, billing, inventory, documents, WhatsApp, AI assist, and reports.';
+  'Full clinic HIS for up to 10 staff users + 1 admin: patients, OP, therapy, billing, inventory, documents, WhatsApp, AI assist, and reports.';
 
 const FEATURES: Array<{ code: string; name: string; description: string; module: string }> = [
   { code: 'PATIENT_MANAGEMENT', name: 'Patient management', description: 'Register, search, and manage patients', module: 'patients' },

@@ -98,8 +98,8 @@ export class RazorpayService {
     if (!planId) {
       const hint =
         billingInterval === 'YEARLY'
-          ? 'Create a yearly plan in Razorpay Dashboard (₹18,000/yr) and set RAZORPAY_YEARLY_PLAN_ID.'
-          : 'Create a monthly plan in Razorpay Dashboard (₹1,800/mo) and set RAZORPAY_MONTHLY_PLAN_ID.';
+          ? 'Create a yearly plan in Razorpay Dashboard (₹21,600/yr) and set RAZORPAY_YEARLY_PLAN_ID.'
+          : 'Create a monthly plan in Razorpay Dashboard (₹2,300/mo) and set RAZORPAY_MONTHLY_PLAN_ID.';
       throw new SaasHttpException(SAAS_ERROR.RAZORPAY_PLAN_MISSING, hint, HttpStatus.SERVICE_UNAVAILABLE);
     }
     return planId;

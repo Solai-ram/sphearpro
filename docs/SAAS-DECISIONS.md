@@ -15,9 +15,9 @@ Change these only with an explicit product decision (edit this file + note the d
 |----------|--------------|--------|
 | Plans in MVP | **One Standard plan, two billing cycles** | Hostinger-style: same product; monthly vs yearly toggle |
 | Plan codes | **`STANDARD`** (monthly), **`STANDARD_YEARLY`** (annual) | Same features and seat limits |
-| Monthly price | **₹1,800/month** | Stored as `180000` paise; plan code `STANDARD` |
-| Annual price | **₹1,500/month effective** | **₹18,000/year** (`1800000` paise/cycle); code `STANDARD_YEARLY`; display `150000` paise/mo |
-| Seat limits | **5 staff + 1 admin** | Enforced on user create; `maxStaffUsers` / `maxAdminUsers` on plan |
+| Monthly price | **₹2,300/month** | Stored as `230000` paise; plan code `STANDARD` |
+| Annual price | **₹1,800/month effective** | **₹21,600/year** (`2160000` paise/cycle); code `STANDARD_YEARLY`; display `180000` paise/mo |
+| Seat limits | **10 staff + 1 admin** | Enforced on user create; `maxStaffUsers` / `maxAdminUsers` on plan |
 | Enterprise / multi-tier | **Deferred** | Custom / multi-plan later if needed |
 | Currency | **INR** | Store amounts as **integer paise** |
 | Setup / onboarding fee | **Optional, not required in MVP checkout** | Catalogue later: ₹2,500–₹5,000; configurable |
@@ -32,8 +32,8 @@ Change these only with an explicit product decision (edit this file + note the d
 
 | Plan code | Display (per month) | Charged per cycle | Cycle paise | Display paise/mo |
 |-----------|---------------------|-------------------|-------------|------------------|
-| `STANDARD` | ₹1,800 | monthly | `180000` | `180000` |
-| `STANDARD_YEARLY` | ₹1,500 | yearly (₹18,000) | `1800000` | `150000` |
+| `STANDARD` | ₹2,300 | monthly | `230000` | `230000` |
+| `STANDARD_YEARLY` | ₹1,800 | yearly (₹21,600) | `2160000` | `180000` |
 
 Never use floating-point for money.
 
@@ -140,7 +140,7 @@ Feature flags come from `PlanFeature` (Phase 3), not hard-coded plan names in Re
 - [x] `.env` / secrets remain gitignored
 - [x] Dev `docker-compose.yml` not replaced by prod config
 - [x] Engineering rules acknowledged in this file
-- [x] Standard plan: ₹1,800/mo or ₹1,500/mo on annual; 5 staff + 1 admin locked
+- [x] Standard plan: ₹2,300/mo or ₹1,800/mo on annual; 10 staff + 1 admin locked
 
 **Phase 0 complete (revised).** Next: **Phase 1 — Multi-tenancy (`clinic_id`)**.
 
@@ -154,3 +154,4 @@ Feature flags come from `PlanFeature` (Phase 3), not hard-coded plan names in Re
 |------|--------|
 | 2026-08-26 | Initial Phase 0 lock (multi-tier from architecture doc) |
 | 2026-08-31 | Revised pricing: ₹1,800/mo or ₹1,500/mo annual; `STANDARD_YEARLY`; 5 staff + 1 admin seats |
+| 2026-09-09 | Revised pricing: ₹2,300/mo or ₹1,800/mo annual (₹21,600/yr); 10 staff + 1 admin seats |

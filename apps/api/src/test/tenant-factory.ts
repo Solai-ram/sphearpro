@@ -99,10 +99,10 @@ export async function ensureStandardPlan(prisma: PrismaClient) {
     create: {
       code: 'STANDARD',
       name: 'SPHEAR Standard',
-      monthlyPricePaise: 180_000,
+      monthlyPricePaise: 230_000,
       currency: 'INR',
       billingInterval: 'MONTHLY',
-      maxStaffUsers: 5,
+      maxStaffUsers: 10,
       maxAdminUsers: 1,
       trialDays: 7,
       isActive: true,

@@ -101,7 +101,7 @@ export function PricingPage() {
         {!loading && !error && selected && (
           <article className={`pricing-card ${featured ? 'pricing-card--featured' : ''}`}>
             {featured ? (
-              <span className="pricing-card-badge">Save 17%</span>
+              <span className="pricing-card-badge">Save 22%</span>
             ) : (
               <span className="pricing-card-badge pricing-card-badge--soft">Monthly</span>
             )}
@@ -117,12 +117,12 @@ export function PricingPage() {
             </div>
             <p className="pricing-card-billed">
               {isYearly
-                ? '7 days free · Then ₹18,000/year'
-                : '7 days free · Then ₹1,800/month'}
+                ? '7 days free · Then ₹21,600/year'
+                : '7 days free · Then ₹2,300/month'}
             </p>
 
             <p className="pricing-card-desc">
-              Everything your clinic needs — {selected.seatSummary ?? '5 staff + 1 admin'}. Cancel
+              Everything your clinic needs — {selected.seatSummary ?? '10 staff + 1 admin'}. Cancel
               anytime. No charge today.
             </p>
 

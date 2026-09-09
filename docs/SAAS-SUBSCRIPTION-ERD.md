@@ -29,8 +29,8 @@ Also: `CANCELLED`, `SUSPENDED`.
 
 | Code | Price |
 |------|-------|
-| `STANDARD` | ₹1,800/month = `180000` paise |
-| `STANDARD_YEARLY` | ₹1,500/mo display; ₹18,000/year = `1800000` paise per cycle |
+| `STANDARD` | ₹2,300/month = `230000` paise |
+| `STANDARD_YEARLY` | ₹1,800/mo display; ₹21,600/year = `2160000` paise per cycle |
 | Seat limits | `maxStaffUsers` = 5, `maxAdminUsers` = 1 (both plans) |
 
 Seed: `prisma/seed-subscription.ts` · API: `GET /api/v1/subscription/plans` · UI: `/pricing`

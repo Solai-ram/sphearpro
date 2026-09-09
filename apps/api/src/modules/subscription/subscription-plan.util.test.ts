@@ -13,7 +13,7 @@ describe('subscription-plan.util', () => {
         monthlyPricePaise: STANDARD_MONTHLY_PAISE,
         billingInterval: 'MONTHLY',
       }),
-    ).toBe(180_000);
+    ).toBe(230_000);
   });
 
   it('charges yearly plan as 12× display monthly rate', () => {
@@ -22,7 +22,7 @@ describe('subscription-plan.util', () => {
         monthlyPricePaise: STANDARD_YEARLY_MONTHLY_EQUIVALENT_PAISE,
         billingInterval: 'YEARLY',
       }),
-    ).toBe(1_800_000);
+    ).toBe(2_160_000);
   });
 
   it('maps billing interval to period months', () => {

@@ -59,7 +59,7 @@ Related: [`DEPLOY-PRODUCTION.md`](./DEPLOY-PRODUCTION.md) · [`SUPPORT-SUBSCRIPT
 ## Definition of Done (§107) — go-live gate
 
 - [ ] Clinic can register (`/signup`)
-- [ ] Clinic can choose plan (`STANDARD` @ ₹1,800/mo or `STANDARD_YEARLY` @ ₹1,500/mo effective)
+- [ ] Clinic can choose plan (`STANDARD` @ ₹2,300/mo or `STANDARD_YEARLY` @ ₹1,800/mo effective)
 - [ ] Clinic can complete payment (live)
 - [ ] Webhook activates subscription in PostgreSQL
 - [ ] Clinic can use HIS Lite while `ACTIVE`

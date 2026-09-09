@@ -1,6 +1,6 @@
 # MediOne — Product Overview
 
-**MediOne** (HIS Lite) is an AI-assisted **multi-tenant clinic management** system. Each clinic is an isolated tenant with its own patients, staff, and clinical records. Commercial access is gated by a SaaS subscription (`STANDARD` @ ₹1,500/month) billed through Razorpay.
+**MediOne** (HIS Lite) is an AI-assisted **multi-tenant clinic management** system. Each clinic is an isolated tenant with its own patients, staff, and clinical records. Commercial access is gated by a SaaS subscription (`STANDARD` @ ₹2,300/month) billed through Razorpay.
 
 This document describes **the product as it exists in this repository today**. Architecture and decisions: `HIS-Lite-Architecture-and-User-Stories.md`, `docs/SAAS-DECISIONS.md`. Demo accounts: `LOGIN.md`. Launch ops: `docs/SAAS-LAUNCH-CHECKLIST.md`.
 

@@ -14,10 +14,10 @@ describe('Phase 12 — platform admin extend / suspend', () => {
       id: 'sub_1',
       clinicId: 'clinic_a',
       status: 'EXPIRED',
-      amountPaise: 180000,
+      amountPaise: 230000,
       currency: 'INR',
       currentPeriodEnd: new Date(now.getTime() - 86400000),
-      plan: { id: 'p1', code: 'STANDARD', name: 'Standard', monthlyPricePaise: 180000, maxStaffUsers: 5, maxAdminUsers: 1 },
+      plan: { id: 'p1', code: 'STANDARD', name: 'Standard', monthlyPricePaise: 230000, maxStaffUsers: 10, maxAdminUsers: 1 },
       clinic: { id: 'clinic_a', name: 'Sunrise', slug: 'sunrise', email: 'a@x.com', status: 'ACTIVE' },
     };
 

@@ -53,6 +53,7 @@ import { UsersPage } from './pages/admin/UsersPage';
 import { RolesPage } from './pages/admin/RolesPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
+import { ClinicSetupPage } from './pages/onboarding/ClinicSetupPage';
 import { PricingPage } from './pages/subscription/PricingPage';
 import { SubscriptionBillingPage } from './pages/subscription/SubscriptionBillingPage';
 import { SubscriptionCheckoutPage } from './pages/subscription/SubscriptionCheckoutPage';
@@ -202,6 +203,7 @@ function App() {
         <Route path="/subscription/invoices" element={<SubscriptionInvoicesPage />} />
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/setup" element={<ClinicSetupPage />} />
       </Route>
 
       {/* Redirect root to dashboard */}

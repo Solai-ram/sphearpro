@@ -132,9 +132,13 @@ export function SubscriptionCheckoutPage() {
       setInfo(message);
       setBusy(false);
       await refresh().catch(() => undefined);
-      // Trial starts after confirm; ACTIVE may wait for webhook — send user to billing either way.
       if (activated || message.toLowerCase().includes('trial')) {
-        navigate('/subscription', { replace: true });
+        try {
+          const me = await fetchApi<{ setupComplete?: boolean }>('/auth/me');
+          navigate(me.setupComplete === false ? '/setup' : '/dashboard', { replace: true });
+        } catch {
+          navigate('/dashboard', { replace: true });
+        }
       }
     },
     [navigate, refresh],
@@ -286,7 +290,7 @@ export function SubscriptionCheckoutPage() {
         {!loadingPlans && selected && (
           <article className={`pricing-card ${featured ? 'pricing-card--featured' : ''}`}>
             {featured ? (
-              <span className="pricing-card-badge">Save 17%</span>
+              <span className="pricing-card-badge">Save 22%</span>
             ) : (
               <span className="pricing-card-badge pricing-card-badge--soft">Monthly</span>
             )}
@@ -302,12 +306,12 @@ export function SubscriptionCheckoutPage() {
             </div>
             <p className="pricing-card-billed">
               {isYearly
-                ? '7 days free · Then ₹18,000/year'
-                : '7 days free · Then ₹1,800/month'}
+                ? '7 days free · Then ₹21,600/year'
+                : '7 days free · Then ₹2,300/month'}
             </p>
 
             <p className="pricing-card-desc">
-              {selected.seatSummary ?? '5 staff + 1 admin'} · Cancel anytime · No charge today
+              {selected.seatSummary ?? '10 staff + 1 admin'} · Cancel anytime · No charge today
             </p>
 
             <button

@@ -40,7 +40,7 @@ export function BillingCycleToggle({ value, onChange, className = '' }: Props) {
       >
         Annual
         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-          Save 17%
+          Save 22%
         </span>
       </button>
     </div>
@@ -56,4 +56,4 @@ export function planForCycle<T extends { billingInterval: string; code: string }
   );
 }
 
-export const REFERENCE_MONTHLY_PAISE = 180_000;
+export const REFERENCE_MONTHLY_PAISE = 230_000;

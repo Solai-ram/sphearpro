@@ -159,7 +159,7 @@
 **Completed:** 2026-08-27 — single `STANDARD` plan @ ₹1,500 (per SAAS-DECISIONS).
 
 ### 3.1 Seed data
-- [x] Seed `STANDARD` ₹180000/mo + `STANDARD_YEARLY` ₹150000/mo display (5 staff + 1 admin)
+- [x] Seed `STANDARD` ₹230000/mo + `STANDARD_YEARLY` ₹180000/mo display (10 staff + 1 admin)
 - [x] ~~Seed `STARTER` / `PROFESSIONAL` / `PREMIUM`~~ deferred — single-plan MVP
 - [x] Features seeded and linked to `STANDARD`
 

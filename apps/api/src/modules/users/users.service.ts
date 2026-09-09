@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Inject,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
@@ -19,6 +20,8 @@ const SENSITIVE_USER_FIELDS = [
   'supportPasswordEnc',
 ] as const;
 
+const PLATFORM_ONLY_ROLES = new Set(['SUPER_ADMIN']);
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -26,6 +29,19 @@ export class UsersService {
     private auditService: AuditService,
     private subscriptionService: SubscriptionService,
   ) {}
+
+  private async assertNoPlatformOnlyRoles(roleIds: string[] | undefined) {
+    if (!roleIds?.length) return;
+    const banned = await this.prisma.role.findMany({
+      where: { id: { in: roleIds }, name: { in: [...PLATFORM_ONLY_ROLES] } },
+      select: { name: true },
+    });
+    if (banned.length) {
+      throw new BadRequestException(
+        'SUPER_ADMIN is reserved for the platform application owner and cannot be assigned to clinic users.',
+      );
+    }
+  }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -125,6 +141,8 @@ export class UsersService {
   }) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already in use');
+
+    await this.assertNoPlatformOnlyRoles(data.roleIds);
 
     await this.subscriptionService.assertClinicUserSeatAvailable(data.clinicId, {
       staffType: data.staffType,
@@ -236,6 +254,8 @@ export class UsersService {
   async assignRoles(userId: string, roleIds: string[], actorId: string | undefined, clinicId: string) {
     const user = await this.prisma.user.findFirst({ where: { id: userId, clinicId } });
     if (!user) throw new NotFoundException('User not found');
+
+    await this.assertNoPlatformOnlyRoles(roleIds);
 
     if (user.clinicId && user.status !== 'INACTIVE') {
       const adminRole = await this.prisma.role.findUnique({ where: { name: 'ADMIN' } });

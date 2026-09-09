@@ -21,6 +21,8 @@ export type AuthUser = {
     cancelAtPeriodEnd?: boolean;
     currentPeriodEnd?: string | null;
   };
+  /** False until clinic finishes post-subscription setup (letterhead + ID formats). */
+  setupComplete?: boolean;
 };
 
 type AuthContextValue = {
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       roles: effectiveRoles(me.roles || [], me.staffType),
       permissions: me.permissions || [],
       subscriptionAccess: me.subscriptionAccess,
+      setupComplete: me.setupComplete !== false,
     });
   }, []);
 

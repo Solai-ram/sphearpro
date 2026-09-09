@@ -171,16 +171,16 @@ export const navigation: readonly NavItem[] = [
     icon: 'reports',
     roles: ['ADMIN', 'BILLING', 'INVENTORY'],
     children: [
-      { name: 'OP clinical', href: '/reports/clinical', roles: ['ADMIN'] },
-      { name: 'OP visits', href: '/reports/op', roles: ['ADMIN'] },
-      { name: 'Therapy', href: '/reports/therapy', roles: ['ADMIN'] },
-      { name: 'Audio', href: '/reports/lab', roles: ['ADMIN'] },
-      { name: 'Billing', href: '/reports/billing', roles: ['ADMIN', 'BILLING'] },
-      { name: 'Revenue', href: '/reports/revenue', roles: ['ADMIN', 'BILLING'] },
-      { name: 'Stock', href: '/reports/stock', roles: ['ADMIN', 'INVENTORY'] },
-      { name: 'Sales', href: '/reports/sales', roles: ['ADMIN', 'INVENTORY'] },
-      { name: 'Item returns', href: '/reports/returns', roles: ['ADMIN', 'INVENTORY'] },
-      { name: 'AI usage', href: '/reports/ai', roles: ['ADMIN'] },
+      { name: 'OP clinical reports', href: '/reports/clinical', roles: ['ADMIN'] },
+      { name: 'OP visits reports', href: '/reports/op', roles: ['ADMIN'] },
+      { name: 'Therapy reports', href: '/reports/therapy', roles: ['ADMIN'] },
+      { name: 'Audio reports', href: '/reports/lab', roles: ['ADMIN'] },
+      { name: 'Billing reports', href: '/reports/billing', roles: ['ADMIN', 'BILLING'] },
+      { name: 'Revenue reports', href: '/reports/revenue', roles: ['ADMIN', 'BILLING'] },
+      { name: 'Stock reports', href: '/reports/stock', roles: ['ADMIN', 'INVENTORY'] },
+      { name: 'Sales reports', href: '/reports/sales', roles: ['ADMIN', 'INVENTORY'] },
+      { name: 'Item returns reports', href: '/reports/returns', roles: ['ADMIN', 'INVENTORY'] },
+      { name: 'AI usage reports', href: '/reports/ai', roles: ['ADMIN'] },
     ],
   },
   { name: 'Users', href: '/users', icon: 'users', roles: ['ADMIN'] },
@@ -280,6 +280,9 @@ function extraAllowedPath(path: string, role: AppRole): boolean {
   // Doctor session workspace
   if (path.startsWith('/doctor/sessions/')) {
     return role === 'DOCTOR' || role === 'ADMIN';
+  }
+  if (path === '/setup' || path.startsWith('/setup/')) {
+    return role === 'ADMIN';
   }
   // Billing invoice detail / print
   if (path.startsWith('/billing/')) {

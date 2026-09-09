@@ -12,25 +12,24 @@ describe('Standard seat limits', () => {
     prisma = {
       subscription: {
         findFirst: vi.fn().mockResolvedValue({
-          plan: { maxStaffUsers: 5, maxAdminUsers: 1 },
+          plan: { maxStaffUsers: 10, maxAdminUsers: 1 },
         }),
       },
       role: { findUnique: vi.fn().mockResolvedValue({ id: 'role_admin', name: 'ADMIN' }) },
       user: {
         findMany: vi.fn().mockResolvedValue([
           { staffType: 'ADMIN', roles: [{ role: { name: 'ADMIN' } }] },
-          { staffType: 'THERAPIST', roles: [] },
-          { staffType: 'THERAPIST', roles: [] },
-          { staffType: 'THERAPIST', roles: [] },
-          { staffType: 'THERAPIST', roles: [] },
-          { staffType: 'THERAPIST', roles: [] },
+          ...Array.from({ length: 10 }, () => ({
+            staffType: 'THERAPIST',
+            roles: [] as { role: { name: string } }[],
+          })),
         ]),
       },
     };
     svc = new SubscriptionService(prisma, {} as RazorpayService, {} as any);
   });
 
-  it('blocks a 6th staff user', async () => {
+  it('blocks an 11th staff user', async () => {
     try {
       await svc.assertClinicUserSeatAvailable('clinic_a', { staffType: 'THERAPIST' });
       expect.fail('expected throw');
@@ -54,9 +53,9 @@ describe('Standard seat limits', () => {
   it('reports seat usage', async () => {
     const usage = await svc.getClinicSeatUsage('clinic_a');
     expect(usage).toEqual({
-      maxStaffUsers: 5,
+      maxStaffUsers: 10,
       maxAdminUsers: 1,
-      usedStaffUsers: 5,
+      usedStaffUsers: 10,
       usedAdminUsers: 1,
       remainingStaffUsers: 0,
       remainingAdminUsers: 0,

@@ -34,6 +34,7 @@ function profileFromSettings(
     clinicLogoUrl: logoUrl || null,
     invoiceTitle: map['invoice.title'] || 'Tax Invoice',
     invoiceTerms: map['invoice.terms'] || FALLBACK_TERMS,
+    patientIdLabel: map['patient.idLabel'] || 'UHID',
   };
 }
 

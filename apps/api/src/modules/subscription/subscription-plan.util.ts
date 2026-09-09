@@ -1,13 +1,13 @@
 import { SubscriptionBillingInterval } from '@prisma/client';
 
-/** Monthly billing — ₹1,800/mo */
+/** Monthly billing — ₹2,300/mo */
 export const STANDARD_MONTHLY_CODE = 'STANDARD';
-/** Yearly billing — ₹1,500/mo effective (₹18,000/yr) */
+/** Yearly billing — ₹1,800/mo effective (₹21,600/yr) */
 export const STANDARD_YEARLY_CODE = 'STANDARD_YEARLY';
 
-export const STANDARD_MONTHLY_PAISE = 180_000;
-export const STANDARD_YEARLY_MONTHLY_EQUIVALENT_PAISE = 150_000;
-export const STANDARD_MAX_STAFF = 5;
+export const STANDARD_MONTHLY_PAISE = 230_000;
+export const STANDARD_YEARLY_MONTHLY_EQUIVALENT_PAISE = 180_000;
+export const STANDARD_MAX_STAFF = 10;
 export const STANDARD_MAX_ADMIN = 1;
 
 export type PlanPricingRow = {

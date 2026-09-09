@@ -32,7 +32,10 @@ import {
   isAdminStaffType,
   planBillingAmountPaise,
   roleIdsIncludeAdmin,
+  STANDARD_MAX_ADMIN,
+  STANDARD_MAX_STAFF,
   STANDARD_MONTHLY_CODE,
+  STANDARD_MONTHLY_PAISE,
 } from './subscription-plan.util';
 
 const GRACE_DAYS = () => Number(process.env.SUBSCRIPTION_GRACE_DAYS || 5);
@@ -1110,7 +1113,7 @@ export class SubscriptionService {
     }
   }
 
-  /** Count clinic users against plan seat limits (5 staff + 1 admin on Standard). */
+  /** Count clinic users against plan seat limits (10 staff + 1 admin on Standard). */
   async getClinicSeatUsage(clinicId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { clinicId },
@@ -1120,16 +1123,16 @@ export class SubscriptionService {
     const plan = sub?.plan;
     const counts = await this.countClinicUserSeats(clinicId);
     return {
-      maxStaffUsers: plan?.maxStaffUsers ?? 5,
-      maxAdminUsers: plan?.maxAdminUsers ?? 1,
+      maxStaffUsers: plan?.maxStaffUsers ?? STANDARD_MAX_STAFF,
+      maxAdminUsers: plan?.maxAdminUsers ?? STANDARD_MAX_ADMIN,
       usedStaffUsers: counts.staff,
       usedAdminUsers: counts.admin,
-      remainingStaffUsers: Math.max(0, (plan?.maxStaffUsers ?? 5) - counts.staff),
-      remainingAdminUsers: Math.max(0, (plan?.maxAdminUsers ?? 1) - counts.admin),
+      remainingStaffUsers: Math.max(0, (plan?.maxStaffUsers ?? STANDARD_MAX_STAFF) - counts.staff),
+      remainingAdminUsers: Math.max(0, (plan?.maxAdminUsers ?? STANDARD_MAX_ADMIN) - counts.admin),
     };
   }
 
-  /** Block new user when Standard seat caps would be exceeded. */
+  /** Block new user when Standard seat caps would be exceeded (1 admin + 10 staff). */
   async assertClinicUserSeatAvailable(
     clinicId: string,
     input: { staffType?: string; roleIds?: string[] },
@@ -1139,7 +1142,9 @@ export class SubscriptionService {
       orderBy: { createdAt: 'desc' },
       include: { plan: true },
     });
-    if (!sub?.plan) return;
+    // Always enforce current-plan defaults even if plan row is missing.
+    const maxStaffUsers = sub?.plan?.maxStaffUsers ?? STANDARD_MAX_STAFF;
+    const maxAdminUsers = sub?.plan?.maxAdminUsers ?? STANDARD_MAX_ADMIN;
 
     const adminRole = await this.prisma.role.findUnique({ where: { name: 'ADMIN' } });
     const addingAdmin =
@@ -1147,19 +1152,18 @@ export class SubscriptionService {
       roleIdsIncludeAdmin(input.roleIds, adminRole?.id);
 
     const counts = await this.countClinicUserSeats(clinicId);
-    const { maxStaffUsers, maxAdminUsers } = sub.plan;
 
     if (addingAdmin && counts.admin >= maxAdminUsers) {
       throw new SaasHttpException(
         SAAS_ERROR.SEAT_LIMIT_EXCEEDED,
-        `Admin seat limit reached (${maxAdminUsers} included on your plan).`,
+        `Your plan includes ${maxAdminUsers} admin only. Upgrade your plan to add more admins.`,
         HttpStatus.FORBIDDEN,
       );
     }
     if (!addingAdmin && counts.staff >= maxStaffUsers) {
       throw new SaasHttpException(
         SAAS_ERROR.SEAT_LIMIT_EXCEEDED,
-        `Staff seat limit reached (${maxStaffUsers} included on your plan).`,
+        `Your plan includes ${maxStaffUsers} users only. Upgrade your plan to add more users.`,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -1594,7 +1598,7 @@ export class SubscriptionService {
 
   private mapPlan(plan: any) {
     const billingAmountPaise = planBillingAmountPaise(plan);
-    const monthlyComparePaise = 180_000;
+    const monthlyComparePaise = STANDARD_MONTHLY_PAISE;
     const yearlySavingsPaise =
       plan.billingInterval === 'YEARLY'
         ? Math.max(0, (monthlyComparePaise - plan.monthlyPricePaise) * 12)

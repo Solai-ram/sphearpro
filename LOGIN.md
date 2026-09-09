@@ -14,7 +14,7 @@ Sign in with **email** and **password**.
 | Pricing | http://localhost:3000/pricing |
 | Clinic signup | http://localhost:3000/signup |
 
-Signup creates a **new clinic** + ADMIN user, then routes toward checkout (`STANDARD` @ ₹1,500/mo). Activation requires a Razorpay webhook (or local `POST /subscription/activate` when configured for dev).
+Signup creates a **new clinic** + ADMIN user, then routes toward checkout (`STANDARD` @ ₹2,300/mo). Activation requires a Razorpay webhook (or local `POST /subscription/activate` when configured for dev).
 
 ## Clinic admin (core seed)
 

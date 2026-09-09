@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Menu, ChevronLeft, ChevronRight, ChevronDown, LogOut, User, LayoutDashboard, Users, Pill, FileText, DollarSign, Package, FolderOpen, MessageSquare, Brain, BarChart2, Settings, Shield, RefreshCw, FlaskConical, Calendar, Clock } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { canAccessPath, navForUser, primaryAppRole, type NavChild } from '../auth/rbac';
-import { useSubscriptionAccess, isSubscriptionOpenPath } from '../auth/SubscriptionAccess';
+import { useSubscriptionAccess, isSubscriptionOpenPath, needsClinicSetup } from '../auth/SubscriptionAccess';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { PRODUCT_NAME } from '../lib/product';
 import { ProductLogo } from './ProductLogo';
@@ -109,6 +109,10 @@ export function Layout() {
   // UX only — API SubscriptionGuard is the real control
   if (user && isRestricted && !isSubscriptionOpenPath(location.pathname)) {
     return <Navigate to="/subscription" replace />;
+  }
+
+  if (user && needsClinicSetup(user) && location.pathname !== '/setup' && !location.pathname.startsWith('/subscription')) {
+    return <Navigate to="/setup" replace />;
   }
 
   const closeMobile = () => setSidebarOpen(false);

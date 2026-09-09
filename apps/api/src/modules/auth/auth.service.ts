@@ -145,6 +145,28 @@ export class AuthService {
     const planCode = (process.env.SAAS_DEFAULT_PLAN_CODE || 'STANDARD').toUpperCase();
     await this.subscriptions.createSubscription(clinic.id, planCode, user.id);
 
+    // Mark clinic for post-subscription setup (letterhead + ID formats).
+    await this.prisma.setting.upsert({
+      where: { clinicId_key: { clinicId: clinic.id, key: 'clinic.setupComplete' } },
+      update: { value: false },
+      create: {
+        clinicId: clinic.id,
+        key: 'clinic.setupComplete',
+        group: 'clinic',
+        value: false,
+      },
+    });
+    await this.prisma.setting.upsert({
+      where: { clinicId_key: { clinicId: clinic.id, key: 'clinic.name' } },
+      update: { value: clinic.name },
+      create: {
+        clinicId: clinic.id,
+        key: 'clinic.name',
+        group: 'clinic',
+        value: clinic.name,
+      },
+    });
+
     const tokens = await this.issueSession(user as any);
     return {
       clinic: { id: clinic.id, name: clinic.name, slug: clinic.slug },
@@ -436,6 +458,17 @@ export class AuthService {
           currentPeriodEnd: null as string | null,
         };
 
+    let setupComplete = true;
+    if (clinicId && !(user as any).isSystemSupport) {
+      const setupRow = await this.prisma.setting.findUnique({
+        where: { clinicId_key: { clinicId, key: 'clinic.setupComplete' } },
+      });
+      if (setupRow) {
+        const v = setupRow.value as unknown;
+        setupComplete = v === true || v === 'true' || v === 1;
+      }
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -449,6 +482,7 @@ export class AuthService {
       roles,
       permissions,
       subscriptionAccess,
+      setupComplete,
     };
   }
 

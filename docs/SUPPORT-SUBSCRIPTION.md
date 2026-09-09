@@ -2,7 +2,7 @@
 
 For clinic admins and platform operators. Commercial rules: [`SAAS-DECISIONS.md`](./SAAS-DECISIONS.md).
 
-**Plan:** `STANDARD` — ₹1,800 / month (monthly) or ₹1,500 / month effective on annual (`STANDARD_YEARLY`, ₹18,000/yr) · **5 staff + 1 admin**  
+**Plan:** `STANDARD` — ₹2,300 / month (monthly) or ₹1,800 / month effective on annual (`STANDARD_YEARLY`, ₹21,600/yr) · **10 staff + 1 admin**  
 **Grace:** 5 days after failed payment  
 **Cancel:** at period end by default  
 **Data:** never delete clinical data on expiry

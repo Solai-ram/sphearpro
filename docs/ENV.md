@@ -103,13 +103,13 @@ Used from Phase 5 onward. Leave empty until Razorpay is configured.
 | `RAZORPAY_KEY_ID` | Checkout key id (`rzp_test_…` or `rzp_live_…`) | Key id only may be sent to frontend when checkout starts |
 | `RAZORPAY_KEY_SECRET` | Server API secret | **Never** |
 | `RAZORPAY_WEBHOOK_SECRET` | Webhook signature | **Never** |
-| `RAZORPAY_PLAN_ID` | Razorpay plan id for `STANDARD` (₹1,800/mo) | Server only — create in Dashboard |
-| `RAZORPAY_PLAN_ID_YEARLY` | Razorpay plan id for `STANDARD_YEARLY` (₹18,000/yr) | Server only |
+| `RAZORPAY_PLAN_ID` | Razorpay plan id for `STANDARD` (₹2,300/mo) | Server only — create in Dashboard |
+| `RAZORPAY_PLAN_ID_YEARLY` | Razorpay plan id for `STANDARD_YEARLY` (₹21,600/yr) | Server only |
 | `RAZORPAY_SUBSCRIPTION_TOTAL_COUNT` | Provider billing cycles (default `120`) | Server only |
 | `SUBSCRIPTION_ENFORCE` | `true`/`false` — SubscriptionGuard + FeatureGuard | Server (`false` = emergency bypass) |
 | `SUBSCRIPTION_GRACE_DAYS` | Days after failed payment before expire | Server only (default **5**) |
 | `SUBSCRIPTION_CURRENCY` | ISO currency | Server (default `INR`) |
-| `SAAS_DEFAULT_PLAN_CODE` | Default highlighted plan code | Server (`STANDARD` — monthly ₹1,800) |
+| `SAAS_DEFAULT_PLAN_CODE` | Default highlighted plan code | Server (`STANDARD` — monthly ₹2,300) |
 | `BACKUP_S3_ENDPOINT` | Off-VPS backup bucket endpoint | Server only |
 | `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` / `BACKUP_S3_BUCKET` | Backup credentials | **Never** to browser |
 | `PLATFORM_ADMIN_EMAIL` | Optional bootstrap super-admin email | Seed (`platform@hislite.local`) |

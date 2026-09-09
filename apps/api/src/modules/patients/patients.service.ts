@@ -2,6 +2,11 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import {
+  formatDocumentNumber,
+  loadPatientNumberConfig,
+  nextDocumentNumber,
+} from '../../common/numbering/document-number';
 
 @Injectable()
 export class PatientsService {
@@ -28,15 +33,18 @@ export class PatientsService {
 
   async findByPatientNumber(patientNumber: string, clinicId: string) {
     const raw = patientNumber.trim();
-    const padded = /^\d+$/.test(raw) ? `P${raw.padStart(6, '0')}` : raw;
+    const cfg = await loadPatientNumberConfig(this.prisma, clinicId);
+    const candidates = new Set<string>([raw]);
+    if (/^\d+$/.test(raw)) {
+      candidates.add(formatDocumentNumber(cfg, parseInt(raw, 10)));
+    }
     const patient = await this.prisma.patient.findFirst({
       where: {
         clinicId,
         deletedAt: null,
-        OR: [
-          { patientNumber: { equals: raw, mode: 'insensitive' } },
-          { patientNumber: { equals: padded, mode: 'insensitive' } },
-        ],
+        OR: [...candidates].map((value) => ({
+          patientNumber: { equals: value, mode: 'insensitive' },
+        })),
       },
       include: {
         appointments: { take: 50, orderBy: { appointmentAt: 'desc' } },
@@ -135,8 +143,14 @@ export class PatientsService {
       if (existing) throw new ConflictException('Email already registered');
     }
 
-    const count = await this.prisma.patient.count({ where: { clinicId: data.clinicId } });
-    const patientNumber = `P${String(count + 1).padStart(6, '0')}`;
+    const patientNumber = await nextDocumentNumber(this.prisma, data.clinicId, 'patient', async (stem) => {
+      const last = await this.prisma.patient.findFirst({
+        where: { clinicId: data.clinicId, patientNumber: { startsWith: stem } },
+        orderBy: { patientNumber: 'desc' },
+        select: { patientNumber: true },
+      });
+      return last?.patientNumber;
+    });
 
     const patient = await this.prisma.patient.create({
       data: {

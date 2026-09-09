@@ -226,7 +226,7 @@ export function SubscriptionBillingPage() {
                       <>
                         {sub.plan.monthlyPriceDisplay}/mo{' '}
                         <span className="text-[var(--muted)]">
-                          (₹18,000 billed yearly — save vs ₹1,800/mo monthly)
+                          (₹21,600 billed yearly — save vs ₹2,300/mo monthly)
                         </span>
                       </>
                     ) : (
@@ -236,7 +236,7 @@ export function SubscriptionBillingPage() {
                       </>
                     )
                   ) : (
-                    '₹1,800/mo monthly · ₹1,500/mo on yearly (₹18,000/year)'
+                    '₹2,300/mo monthly · ₹1,800/mo on yearly (₹21,600/year)'
                   )}
                 </dd>
               </div>
@@ -245,7 +245,7 @@ export function SubscriptionBillingPage() {
                 <dd className="mt-1 text-sm font-medium">
                   {seats
                     ? `${seats.usedStaffUsers}/${seats.maxStaffUsers} staff · ${seats.usedAdminUsers}/${seats.maxAdminUsers} admin`
-                    : sub?.plan?.seatSummary || '5 staff + 1 admin'}
+                    : sub?.plan?.seatSummary || '10 staff + 1 admin'}
                 </dd>
               </div>
               <div>

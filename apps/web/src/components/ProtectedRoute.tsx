@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { canAccessPath } from '../auth/rbac';
-import { useSubscriptionAccess, isSubscriptionOpenPath } from '../auth/SubscriptionAccess';
+import { useSubscriptionAccess, isSubscriptionOpenPath, needsClinicSetup } from '../auth/SubscriptionAccess';
 
 export function ProtectedRoute({
   children,
@@ -35,6 +35,10 @@ export function ProtectedRoute({
 
   if (isRestricted && !isSubscriptionOpenPath(path) && !path.startsWith('/platform')) {
     return <Navigate to="/subscription" replace />;
+  }
+
+  if (needsClinicSetup(user) && path !== '/setup' && !path.startsWith('/subscription')) {
+    return <Navigate to="/setup" replace />;
   }
 
   return <>{children}</>;

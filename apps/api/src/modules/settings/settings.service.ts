@@ -23,6 +23,8 @@ const DEFAULT_SETTINGS: Array<{ key: string; group: string; value: unknown }> = 
   { key: 'clinic.logoS3Key', group: 'clinic', value: '' },
   { key: 'clinic.logoMimeType', group: 'clinic', value: '' },
   { key: 'clinic.logoFileName', group: 'clinic', value: '' },
+  /** New clinics set this to false at signup; existing clinics default true so they are not forced through setup. */
+  { key: 'clinic.setupComplete', group: 'clinic', value: true },
   { key: 'invoice.title', group: 'invoice', value: 'Tax Invoice' },
   {
     key: 'invoice.terms',
@@ -32,6 +34,17 @@ const DEFAULT_SETTINGS: Array<{ key: string; group: string; value: unknown }> = 
   },
   { key: 'billing.defaultTaxRate', group: 'billing', value: 0 },
   { key: 'billing.currency', group: 'billing', value: 'INR' },
+  { key: 'billing.invoicePrefix', group: 'billing', value: 'INV' },
+  { key: 'billing.invoiceIncludeYear', group: 'billing', value: true },
+  { key: 'billing.invoiceSeparator', group: 'billing', value: '-' },
+  { key: 'billing.invoiceDigits', group: 'billing', value: 6 },
+  { key: 'patient.idPrefix', group: 'patient', value: 'P' },
+  { key: 'patient.idIncludeYear', group: 'patient', value: false },
+  { key: 'patient.idSeparator', group: 'patient', value: '' },
+  { key: 'patient.idDigits', group: 'patient', value: 6 },
+  { key: 'patient.idLabel', group: 'patient', value: 'UHID' },
+  { key: 'receipt.opTitle', group: 'receipt', value: 'OP Registration Receipt' },
+  { key: 'receipt.reviewTitle', group: 'receipt', value: 'OP Review Receipt' },
   { key: 'ui.theme', group: 'ui', value: 'clinical-blue' },
 ];
 
