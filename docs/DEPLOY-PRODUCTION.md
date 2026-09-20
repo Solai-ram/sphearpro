@@ -71,6 +71,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production build
 docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api \
   npx prisma migrate deploy --schema=prisma/schema.prisma
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+docker compose -f docker-compose.prod.yml --env-file .env.production exec nginx nginx -s reload
 docker compose -f docker-compose.prod.yml --env-file .env.production --profile backup up -d
 ```
 

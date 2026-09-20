@@ -14,6 +14,8 @@ coverage
 *.sql.gz
 *.dump
 backups/
+*.backup*
+.env*.backup*
 
 .env.production.secrets.local
 

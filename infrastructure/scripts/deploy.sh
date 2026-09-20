@@ -26,6 +26,9 @@ echo "==> migrate deploy (never migrate reset)"
 echo "==> up -d"
 "${COMPOSE[@]}" up -d
 
+echo "==> reload nginx (refresh upstream DNS)"
+"${COMPOSE[@]}" exec -T nginx nginx -s reload || "${COMPOSE[@]}" restart nginx
+
 echo "==> ps"
 "${COMPOSE[@]}" ps
 
