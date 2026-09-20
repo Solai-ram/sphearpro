@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ServiceMasterCategory } from '@prisma/client';
 import { ServicesService } from './services.service';
@@ -55,6 +55,7 @@ export class ServicesController {
       name: string;
       category?: ServiceMasterCategory;
       price: number;
+      discount?: number;
       description?: string;
       isActive?: boolean;
       clinicId?: string;
@@ -92,6 +93,7 @@ export class ServicesController {
       name?: string;
       category?: ServiceMasterCategory;
       price?: number;
+      discount?: number;
       description?: string;
       isActive?: boolean;
     },
@@ -101,5 +103,12 @@ export class ServicesController {
       ...body,
       updatedBy: user.sub,
     });
+  }
+
+  @Delete(':id')
+  @Authenticated('patients.create')
+  @ApiOperation({ summary: 'Delete a service master' })
+  delete(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.servicesService.delete(id, requireClinicId(user));
   }
 }

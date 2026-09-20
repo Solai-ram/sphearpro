@@ -24,6 +24,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { MailModule } from './modules/mail/mail.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './common/health/health.module';
 
@@ -47,7 +48,7 @@ import { HealthModule } from './common/health/health.module';
     ]),
     BullModule.forRoot({
       connection: {
-        host: process.env.REDIS_HOST || 'redis',
+        host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
         password: process.env.REDIS_PASSWORD,
       },
@@ -73,6 +74,7 @@ import { HealthModule } from './common/health/health.module';
     DashboardModule,
     SettingsModule,
     SubscriptionModule,
+    AttendanceModule,
     AuditModule,
     HealthModule,
   ],

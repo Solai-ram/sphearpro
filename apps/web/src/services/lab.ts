@@ -31,4 +31,22 @@ export const labApi = {
   }): Promise<LabProcedure> {
     return fetchApi('/lab/procedures', { method: 'POST', body: JSON.stringify(data) });
   },
+  updateProcedure(
+    id: string,
+    data: Partial<{
+      code: string;
+      name: string;
+      department: string;
+      sampleType: LabSampleType;
+      price: number;
+      tatHours: number;
+      instructions?: string;
+      isActive: boolean;
+    }>,
+  ): Promise<LabProcedure> {
+    return fetchApi(`/lab/procedures/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  },
+  deleteProcedure(id: string): Promise<LabProcedure> {
+    return fetchApi(`/lab/procedures/${id}`, { method: 'DELETE' });
+  },
 };

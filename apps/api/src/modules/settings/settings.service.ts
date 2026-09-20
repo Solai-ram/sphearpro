@@ -146,6 +146,8 @@ export class SettingsService {
     actorId?: string,
   ) {
     const updated = [];
+    const clinicUpdates: Prisma.ClinicUpdateInput = {};
+
     for (const item of items) {
       // Logo binary metadata is managed only via upload/remove endpoints.
       if (
@@ -155,26 +157,53 @@ export class SettingsService {
       ) {
         continue;
       }
+
       const group = item.group || item.key.split('.')[0] || 'general';
+      const safeVal = (item.value === undefined || item.value === null) ? '' : item.value;
+
+      // Track clinic entity fields to keep Clinic record synchronized
+      if (item.key === 'clinic.name' && typeof safeVal === 'string' && safeVal.trim()) {
+        clinicUpdates.name = safeVal.trim();
+      } else if (item.key === 'clinic.phone' && typeof safeVal === 'string') {
+        clinicUpdates.phone = safeVal.trim() || null;
+      } else if (item.key === 'clinic.email' && typeof safeVal === 'string') {
+        clinicUpdates.email = safeVal.trim() || null;
+      } else if (item.key === 'clinic.gstin' && typeof safeVal === 'string') {
+        clinicUpdates.gstin = safeVal.trim() || null;
+      } else if (item.key === 'clinic.address' && typeof safeVal === 'string') {
+        clinicUpdates.address = { line: safeVal.trim() };
+      }
+
       const row = await this.prisma.setting.upsert({
         where: { clinicId_key: { clinicId, key: item.key } },
-        update: { value: item.value as Prisma.InputJsonValue, group },
+        update: { value: safeVal as Prisma.InputJsonValue, group },
         create: {
           clinicId,
           key: item.key,
-          value: item.value as Prisma.InputJsonValue,
+          value: safeVal as Prisma.InputJsonValue,
           group,
         },
       });
       updated.push(row);
     }
+
+    if (Object.keys(clinicUpdates).length > 0) {
+      await this.prisma.clinic.update({
+        where: { id: clinicId },
+        data: clinicUpdates,
+      }).catch((err) => {
+        this.logger.warn(`Failed to sync clinic model with settings: ${err.message}`);
+      });
+    }
+
     await this.audit.log({
       clinicId,
       actorId,
       action: 'SETTINGS_UPDATED',
       entityType: 'setting',
       metadata: { keys: items.map((i) => i.key) },
-    });
+    }).catch(() => undefined);
+
     return updated;
   }
 
@@ -186,14 +215,19 @@ export class SettingsService {
     }
     const fileName = await this.readSettingValue(clinicId, 'clinic.logoFileName');
     const mimeType = await this.readSettingValue(clinicId, 'clinic.logoMimeType');
-    const command = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: s3Key,
-      ResponseContentType: mimeType || undefined,
-      ResponseContentDisposition: 'inline',
-    });
-    const url = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
-    return { url, fileName, mimeType };
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: s3Key,
+        ResponseContentType: mimeType || undefined,
+        ResponseContentDisposition: 'inline',
+      });
+      const url = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
+      return { url, fileName, mimeType };
+    } catch (err) {
+      this.logger.warn(`Failed to get signed logo URL: ${err instanceof Error ? err.message : err}`);
+      return { url: null as string | null, fileName, mimeType };
+    }
   }
 
   async uploadLogo(
@@ -210,23 +244,30 @@ export class SettingsService {
     const previousKey = await this.readSettingValue(clinicId, 'clinic.logoS3Key');
 
     const timestamp = Date.now();
-    const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const sanitized = (file.originalname || 'logo.png').replace(/[^a-zA-Z0-9.-]/g, '_');
     const s3Key = `clinics/${clinicId}/letterhead/${timestamp}-${sanitized}`;
 
-    await this.ensureBucket();
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: s3Key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      }),
-    );
+    try {
+      await this.ensureBucket();
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: s3Key,
+          Body: file.buffer,
+          ContentType: file.mimetype || 'image/png',
+        }),
+      );
+    } catch (err) {
+      this.logger.error(`Failed to store logo in S3: ${err instanceof Error ? err.message : err}`);
+      throw new BadRequestException(
+        `Failed to store logo: ${err instanceof Error ? err.message : 'Storage service unavailable'}`,
+      );
+    }
 
     for (const item of [
       { key: 'clinic.logoS3Key', value: s3Key },
-      { key: 'clinic.logoMimeType', value: file.mimetype },
-      { key: 'clinic.logoFileName', value: file.originalname },
+      { key: 'clinic.logoMimeType', value: file.mimetype || 'image/png' },
+      { key: 'clinic.logoFileName', value: file.originalname || 'logo.png' },
     ]) {
       await this.prisma.setting.upsert({
         where: { clinicId_key: { clinicId, key: item.key } },
@@ -257,7 +298,7 @@ export class SettingsService {
       entityType: 'setting',
       result: 'SUCCESS',
       metadata: { fileName: file.originalname, mimeType: file.mimetype, sizeBytes: file.size },
-    });
+    }).catch(() => undefined);
 
     return this.getLogoUrl(clinicId);
   }

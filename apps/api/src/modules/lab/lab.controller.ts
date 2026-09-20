@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { LabService, type LabSampleType } from './lab.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -97,6 +97,7 @@ export class LabController {
     @Param('id') id: string,
     @Body()
     body: {
+      code?: string;
       name?: string;
       department?: string;
       sampleType?: LabSampleType;
@@ -108,5 +109,12 @@ export class LabController {
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     return this.labService.update(id, requireClinicId(user), { ...body, updatedBy: user.sub });
+  }
+
+  @Delete('procedures/:id')
+  @Authenticated('lab.procedure.edit')
+  @ApiOperation({ summary: 'Delete a lab procedure' })
+  delete(@Param('id') id: string, @CurrentUser() user: { clinicId?: string }) {
+    return this.labService.delete(id, requireClinicId(user));
   }
 }

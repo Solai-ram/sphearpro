@@ -85,6 +85,9 @@ export interface OpCase {
   notes?: ClinicalNote[];
   prescriptions?: Prescription[];
   followUps?: FollowUp[];
+  paymentMethod?: string | null;
+  invoiceNumber?: string | null;
+  invoiceStatus?: string | null;
   _count?: {
     diagnoses: number;
     prescriptions: number;
@@ -108,6 +111,7 @@ export interface CreateOpCaseInput {
   chiefComplaint?: string;
   vitals?: Record<string, any>;
   consultationFee?: number;
+  discount?: number;
   serviceId?: string;
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;

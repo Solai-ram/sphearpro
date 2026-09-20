@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Filter, Loader2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Search, Filter, Loader2, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import {
   ColumnDef,
   flexRender,
@@ -17,6 +17,7 @@ import {
 } from '@tanstack/react-table';
 import type { Patient } from '@his-lite/shared-types';
 import { fetchApi } from '../../lib/api';
+import { ageFromDob } from '../../lib/age';
 
 interface PatientsListResponse {
   data: Patient[];
@@ -45,7 +46,8 @@ export function PatientsListPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
-  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [activeSearch, setActiveSearch] = useState(searchParams.get('search') || '');
   const [genderFilter, setGenderFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,15 +55,15 @@ export function PatientsListPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: page - 1, pageSize: limit });
 
-  const loadPatients = useCallback(async () => {
+  const loadPatients = useCallback(async (targetPage = page, targetSearch = activeSearch, targetGender = genderFilter) => {
     setIsLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (page) params.append('page', String(page));
+      if (targetPage) params.append('page', String(targetPage));
       if (limit) params.append('limit', String(limit));
-      if (search) params.append('search', search);
-      if (genderFilter) params.append('gender', genderFilter);
+      if (targetSearch.trim()) params.append('search', targetSearch.trim());
+      if (targetGender) params.append('gender', targetGender);
 
       const response = await fetchApi<PatientsListResponse>(`/patients?${params.toString()}`);
       setPatients(response.data);
@@ -71,11 +73,11 @@ export function PatientsListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, search, genderFilter]);
+  }, [page, limit, activeSearch, genderFilter]);
 
   useEffect(() => {
-    loadPatients();
-  }, [loadPatients]);
+    loadPatients(page, activeSearch, genderFilter);
+  }, [page, activeSearch, genderFilter]);
 
   const columns: ColumnDef<PatientsTableFeatures, Patient, any>[] = [
     {
@@ -93,16 +95,26 @@ export function PatientsListPage() {
       ),
     },
     {
-      accessorKey: 'phone',
-      header: 'Phone',
-    },
-    {
-      accessorKey: 'email',
-      header: 'Email',
+      accessorKey: 'dateOfBirth',
+      header: 'Age',
+      cell: ({ row }) => {
+        const age = ageFromDob(row.original.dateOfBirth);
+        return <span className="text-sm font-medium text-gray-800">{age != null ? `${age} yrs` : '—'}</span>;
+      },
     },
     {
       accessorKey: 'gender',
       header: 'Gender',
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Phone',
+      cell: ({ row }) => row.original.phone || '—',
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => row.original.email || '—',
     },
     {
       accessorKey: 'createdAt',
@@ -124,18 +136,24 @@ export function PatientsListPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setActiveSearch(searchInput);
     setPage(1);
+    loadPatients(1, searchInput, genderFilter);
   };
 
   const handleGenderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setGenderFilter(e.target.value);
+    const val = e.target.value;
+    setGenderFilter(val);
     setPage(1);
+    loadPatients(1, activeSearch, val);
   };
 
   const resetFilters = () => {
-    setSearch('');
+    setSearchInput('');
+    setActiveSearch('');
     setGenderFilter('');
     setPage(1);
+    loadPatients(1, '', '');
   };
 
   return (
@@ -143,12 +161,8 @@ export function PatientsListPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">OP reports</h1>
-          <p className="text-gray-500">Manage patient records</p>
+          <p className="text-gray-500">Manage and view registered OP patient records</p>
         </div>
-        <Link to="/patients/new?intent=op" className="btn-primary">
-          <Plus className="w-4 h-4 mr-2" />
-          New Patient
-        </Link>
       </div>
 
       {error && (
@@ -160,14 +174,14 @@ export function PatientsListPage() {
 
       {/* Filters */}
       <div className="card p-4 space-y-4">
-        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4">
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search patients..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search patients by name, phone, or patient #..."
               className="input pl-10"
             />
           </div>
@@ -184,15 +198,15 @@ export function PatientsListPage() {
             <option value="UNKNOWN">Unknown</option>
           </select>
 
-          <button type="submit" className="btn-secondary">
-            <Filter className="w-4 h-4 mr-2" />
-            Apply
+          <button type="submit" className="btn-primary flex items-center justify-center gap-1.5 px-5">
+            <Filter className="w-4 h-4" />
+            Filter
           </button>
 
-          {(search || genderFilter) && (
-            <button type="button" onClick={resetFilters} className="btn-ghost">
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Clear
+          {(searchInput || activeSearch || genderFilter) && (
+            <button type="button" onClick={resetFilters} className="btn-ghost flex items-center gap-1">
+              <RotateCcw className="w-4 h-4" />
+              Reset
             </button>
           )}
         </form>

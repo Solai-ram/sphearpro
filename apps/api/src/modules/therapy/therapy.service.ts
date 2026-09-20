@@ -146,6 +146,7 @@ export class TherapyService {
     clinicId: string,
     data: {
       name?: string;
+      therapyTypeId?: string;
       totalSessions?: number;
       frequency?: SessionFrequency;
       price?: number;
@@ -154,11 +155,33 @@ export class TherapyService {
     },
   ) {
     await this.getPackage(id, clinicId);
+    if (data.therapyTypeId) {
+      const type = await this.prisma.therapyType.findFirst({ where: { id: data.therapyTypeId, clinicId } });
+      if (!type) throw new NotFoundException('Therapy type not found');
+    }
     return this.prisma.therapyPackage.update({
       where: { id },
       data,
       include: { therapyType: true },
     });
+  }
+
+  async deletePackage(id: string, clinicId: string) {
+    await this.getPackage(id, clinicId);
+    const [caseCount, invoiceCount] = await Promise.all([
+      this.prisma.therapyCase.count({ where: { packageId: id } }),
+      this.prisma.invoiceItem.count({ where: { referenceId: id, billableType: 'THERAPY_PACKAGE' } }),
+    ]);
+
+    if (caseCount > 0 || invoiceCount > 0) {
+      return this.prisma.therapyPackage.update({
+        where: { id },
+        data: { isActive: false },
+        include: { therapyType: true },
+      });
+    }
+
+    return this.prisma.therapyPackage.delete({ where: { id } });
   }
 
   // ---------------------------------------------------------------------------

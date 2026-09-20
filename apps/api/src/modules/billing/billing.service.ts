@@ -105,7 +105,7 @@ export class BillingService {
         patientId: data.patientId,
         invoiceNumber,
         dueDate,
-        status: 'PENDING',
+        status: grandTotal <= 0 ? 'PAID' : 'PENDING',
         subtotal,
         discountTotal,
         taxTotal,

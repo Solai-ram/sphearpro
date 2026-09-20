@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -186,6 +186,14 @@ export class InventoryController {
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     return this.inventoryService.updateProduct(id, requireClinicId(user), body, user.sub);
+  }
+
+  @Delete('products/:id')
+  @Authenticated('inventory.product.create')
+  @ApiParam({ name: 'id' })
+  @ApiOperation({ summary: 'Delete product (or deactivate if has history)' })
+  deleteProduct(@Param('id') id: string, @CurrentUser() user: { sub?: string; clinicId?: string }) {
+    return this.inventoryService.deleteProduct(id, requireClinicId(user), user.sub);
   }
 
   @Get('stock/transactions')

@@ -59,6 +59,7 @@ function patientSchema(forOp: boolean) {
     consultationFee: forOp
       ? z.string().min(1, 'Price is required').pipe(z.coerce.number().min(0, 'Price cannot be negative'))
       : z.string().optional(),
+    discount: z.union([z.string(), z.number()]).optional(),
     paymentMethod: forOp ? z.enum(['CASH', 'UPI', 'CARD']) : z.enum(['CASH', 'UPI', 'CARD']).optional(),
     paymentReference: z.string().optional(),
   });
@@ -98,7 +99,11 @@ export function PatientCreatePage() {
   const paymentMethod = watch('paymentMethod');
 
   const sortedServices = useMemo(
-    () => [...services].sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...services].sort((a, b) => {
+      if (a.category === 'CONSULTATION' && b.category !== 'CONSULTATION') return -1;
+      if (b.category === 'CONSULTATION' && a.category !== 'CONSULTATION') return 1;
+      return a.name.localeCompare(b.name);
+    }),
     [services],
   );
 
@@ -114,15 +119,21 @@ export function PatientCreatePage() {
     if (!forOp || !sortedServices.length) return;
     const current = watch('serviceId');
     if (current && sortedServices.some((s) => s.id === current)) return;
-    const pick = sortedServices[0];
+    const pick = sortedServices.find((s) => s.category === 'CONSULTATION' && !s.name.toLowerCase().includes('specialist')) ||
+                 sortedServices.find((s) => s.category === 'CONSULTATION') ||
+                 sortedServices[0];
     setValue('serviceId', pick.id);
     setValue('consultationFee', String(pick.price));
+    if (pick.discount) setValue('discount', String(pick.discount));
   }, [forOp, sortedServices, setValue, watch]);
 
   useEffect(() => {
     if (!forOp || !selectedServiceId) return;
     const service = services.find((s) => s.id === selectedServiceId);
-    if (service) setValue('consultationFee', String(service.price));
+    if (service) {
+      setValue('consultationFee', String(service.price));
+      if (service.discount != null) setValue('discount', String(service.discount));
+    }
   }, [forOp, selectedServiceId, services, setValue]);
 
   const onSubmit = async (data: PatientForm) => {
@@ -158,6 +169,7 @@ export function PatientCreatePage() {
           patientId: result.id,
           serviceId: data.serviceId!,
           consultationFee: data.consultationFee as number,
+          discount: data.discount ? Number(data.discount) : 0,
           paymentMethod: data.paymentMethod || 'CASH',
           paymentReference: data.paymentReference || undefined,
         });
@@ -214,9 +226,33 @@ export function PatientCreatePage() {
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
             </div>
 
-            <div>
-              {forOp ? (
-                <>
+            {forOp ? (
+              <>
+                <div>
+                  <label htmlFor="dateOfBirth" className={label}>Date of Birth (optional)</label>
+                  <input
+                    {...register('dateOfBirth')}
+                    id="dateOfBirth"
+                    type="date"
+                    className={field}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const dob = e.target.value;
+                      setValue('dateOfBirth', dob);
+                      if (dob) {
+                        const birth = new Date(dob);
+                        const today = new Date();
+                        let a = today.getFullYear() - birth.getFullYear();
+                        const m = today.getMonth() - birth.getMonth();
+                        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
+                        if (a >= 0 && a <= 120) setValue('age', a);
+                      }
+                    }}
+                  />
+                  {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>}
+                </div>
+
+                <div>
                   <label htmlFor="age" className={label}>Age (years) *</label>
                   <input
                     {...register('age')}
@@ -226,23 +262,33 @@ export function PatientCreatePage() {
                     max={120}
                     className={field}
                     placeholder="e.g. 45"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValue('age', val as any);
+                      const num = Number(val);
+                      if (!isNaN(num) && num >= 0 && num <= 120) {
+                        const d = new Date();
+                        d.setFullYear(d.getFullYear() - num);
+                        setValue('dateOfBirth', d.toISOString().split('T')[0]);
+                      }
+                    }}
                   />
                   {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age.message}</p>}
-                </>
-              ) : (
-                <>
-                  <label htmlFor="dateOfBirth" className={label}>Date of Birth</label>
-                  <input
-                    {...register('dateOfBirth')}
-                    id="dateOfBirth"
-                    type="date"
-                    className={field}
-                    max={new Date().toISOString().split('T')[0]}
-                  />
-                  {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label htmlFor="dateOfBirth" className={label}>Date of Birth</label>
+                <input
+                  {...register('dateOfBirth')}
+                  id="dateOfBirth"
+                  type="date"
+                  className={field}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>}
+              </div>
+            )}
 
             <div>
               <label htmlFor="gender" className={label}>Gender{forOp ? ' *' : ''}</label>
@@ -417,13 +463,33 @@ export function PatientCreatePage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    className={`${field} pl-7`}
-                    readOnly
+                    className={`${field} pl-7 font-medium`}
                   />
                 </div>
                 {errors.consultationFee && (
                   <p className="mt-1 text-sm text-red-600">{String(errors.consultationFee.message)}</p>
                 )}
+              </div>
+              <div>
+                <label htmlFor="discount" className={`${label} text-emerald-700 font-semibold`}>Discount (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 text-sm">₹</span>
+                  <input
+                    {...register('discount')}
+                    id="discount"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`${field} pl-7 border-emerald-300 bg-emerald-50/30 text-emerald-900 font-medium`}
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-sm">
+                <span className="text-gray-600 font-medium">Net Payable:</span>
+                <span className="font-mono font-bold text-blue-600">
+                  ₹{Math.max(0, Number(watch('consultationFee') || 0) - Number(watch('discount') || 0)).toFixed(2)}
+                </span>
               </div>
               <div className="md:col-span-2">
                 <label className={label}>Mode of payment *</label>

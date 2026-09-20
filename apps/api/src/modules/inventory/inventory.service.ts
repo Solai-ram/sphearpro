@@ -348,6 +348,51 @@ export class InventoryService {
     return withStock;
   }
 
+  async deleteProduct(id: string, clinicId: string, deletedBy?: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, clinicId },
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+            invoiceItems: true,
+            sales: true,
+          },
+        },
+      },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    // If product has linked transactions/sales/invoices, deactivate (soft delete)
+    if (product._count.transactions > 0 || product._count.invoiceItems > 0 || product._count.sales > 0) {
+      const updated = await this.prisma.product.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      await this.auditService.log({
+        actorId: deletedBy,
+        actorType: 'user',
+        action: 'PRODUCT_DEACTIVATED',
+        entityType: 'Product',
+        entityId: id,
+        result: 'SUCCESS',
+        metadata: { reason: 'Has associated transactions, deactivated instead of hard delete' },
+      });
+      return { success: true, softDeleted: true, message: 'Product has transaction history; marked as inactive' };
+    }
+
+    await this.prisma.product.delete({ where: { id } });
+    await this.auditService.log({
+      actorId: deletedBy,
+      actorType: 'user',
+      action: 'PRODUCT_DELETED',
+      entityType: 'Product',
+      entityId: id,
+      result: 'SUCCESS',
+    });
+    return { success: true, softDeleted: false, message: 'Product deleted permanently' };
+  }
+
   // ---------------------------------------------------------------------------
   // Stock
   // ---------------------------------------------------------------------------

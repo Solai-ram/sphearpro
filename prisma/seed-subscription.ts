@@ -27,6 +27,7 @@ const FEATURES: Array<{ code: string; name: string; description: string; module:
   { code: 'ADVANCED_REPORTS', name: 'Reports', description: 'Clinical, therapy, financial, and inventory reports', module: 'reports' },
   { code: 'DASHBOARD', name: 'Dashboard', description: 'Role dashboards and KPIs', module: 'dashboard' },
   { code: 'MULTI_DOCTOR', name: 'Multi-doctor', description: 'Multiple doctors and per-session assignment', module: 'staff' },
+  { code: 'STAFF_ATTENDANCE', name: 'Staff attendance', description: 'GPS/device/biometric staff check-in, shifts, and reports', module: 'attendance' },
 ];
 
 async function linkFeatures(prisma: PrismaClient, planId: string, featureIds: string[]) {

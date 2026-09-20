@@ -76,6 +76,17 @@ describe('rbac', () => {
       expect(canAccessPath('/patients', [], 'INVENTORY')).toBe(false);
     });
 
+    it('lets staff open own attendance but not admin attendance', () => {
+      expect(canAccessPath('/attendance', [], 'DOCTOR')).toBe(true);
+      expect(canAccessPath('/attendance/history', [], 'RECEPTIONIST')).toBe(true);
+      expect(canAccessPath('/attendance/leave', [], 'DOCTOR')).toBe(true);
+      expect(canAccessPath('/admin/attendance', [], 'DOCTOR')).toBe(false);
+      expect(canAccessPath('/admin/attendance/settings', [], 'BILLING')).toBe(false);
+      expect(canAccessPath('/admin/attendance/leave', [], 'DOCTOR')).toBe(false);
+      expect(canAccessPath('/admin/attendance', ['ADMIN'])).toBe(true);
+      expect(canAccessPath('/admin/attendance/leave', ['ADMIN'])).toBe(true);
+    });
+
     it('denies unmatched paths (fail closed)', () => {
       expect(canAccessPath('/secret-new-route', [], 'DOCTOR')).toBe(false);
     });

@@ -272,6 +272,7 @@ export class LabService {
     id: string,
     clinicId: string,
     data: {
+      code?: string;
       name?: string;
       department?: string;
       sampleType?: LabSampleType;
@@ -289,6 +290,7 @@ export class LabService {
     const procedure = await this.prisma.labProcedure.update({
       where: { id },
       data: {
+        code: data.code?.trim().toUpperCase(),
         name: data.name?.trim(),
         department: data.department?.trim(),
         sampleType: data.sampleType,
@@ -311,5 +313,19 @@ export class LabService {
     });
 
     return serialize(procedure);
+  }
+
+  async delete(id: string, clinicId: string) {
+    await this.findById(id, clinicId);
+    const invoiceCount = await this.prisma.invoiceItem.count({
+      where: { referenceId: id, billableType: 'LAB_TEST' },
+    });
+    if (invoiceCount > 0) {
+      return this.prisma.labProcedure.update({
+        where: { id },
+        data: { isActive: false },
+      });
+    }
+    return this.prisma.labProcedure.delete({ where: { id } });
   }
 }

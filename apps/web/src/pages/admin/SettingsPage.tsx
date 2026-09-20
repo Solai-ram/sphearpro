@@ -119,21 +119,21 @@ export function SettingsPage() {
     setSaved(false);
     try {
       await settingsApi.save([
-        { key: 'clinic.name', group: 'clinic', value: form['clinic.name'] },
-        { key: 'clinic.logoText', group: 'clinic', value: form['clinic.logoText'] },
-        { key: 'clinic.address', group: 'clinic', value: form['clinic.address'] },
-        { key: 'clinic.phone', group: 'clinic', value: form['clinic.phone'] },
-        { key: 'clinic.email', group: 'clinic', value: form['clinic.email'] },
-        { key: 'clinic.gstin', group: 'clinic', value: form['clinic.gstin'] },
-        { key: 'clinic.state', group: 'clinic', value: form['clinic.state'] },
+        { key: 'clinic.name', group: 'clinic', value: form['clinic.name'] || '' },
+        { key: 'clinic.logoText', group: 'clinic', value: form['clinic.logoText'] || '' },
+        { key: 'clinic.address', group: 'clinic', value: form['clinic.address'] || '' },
+        { key: 'clinic.phone', group: 'clinic', value: form['clinic.phone'] || '' },
+        { key: 'clinic.email', group: 'clinic', value: form['clinic.email'] || '' },
+        { key: 'clinic.gstin', group: 'clinic', value: form['clinic.gstin'] || '' },
+        { key: 'clinic.state', group: 'clinic', value: form['clinic.state'] || '' },
         { key: 'invoice.title', group: 'invoice', value: form['invoice.title'] || 'Tax Invoice' },
-        { key: 'invoice.terms', group: 'invoice', value: form['invoice.terms'] },
+        { key: 'invoice.terms', group: 'invoice', value: form['invoice.terms'] || '' },
         {
           key: 'billing.defaultTaxRate',
           group: 'billing',
           value: Number(form['billing.defaultTaxRate'] || 0),
         },
-        { key: 'billing.currency', group: 'billing', value: form['billing.currency'] },
+        { key: 'billing.currency', group: 'billing', value: form['billing.currency'] || 'INR' },
         {
           key: 'billing.invoicePrefix',
           group: 'billing',
