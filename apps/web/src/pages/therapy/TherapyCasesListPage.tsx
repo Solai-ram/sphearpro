@@ -51,7 +51,7 @@ export function TherapyCasesListPage() {
           <p className="text-gray-500">Registered therapy cases after an OP consultation</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/therapy/packages" className="btn-secondary">Packages</Link>
+          <Link to="/therapy/packages" className="btn-secondary">Therapy masters</Link>
           <Link to="/therapy/new" className="btn-primary">
             <Plus className="w-4 h-4 mr-2" />
             Therapy registration

@@ -83,6 +83,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-hislite}:${POSTGRES_PASSWORD:-hislite_dev_password}@postgres:5432/${POSTGRES_DB:-hislite}?schema=public
       REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production_min_32_chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_change_in_production_min_32_chars}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}

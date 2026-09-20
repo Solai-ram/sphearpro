@@ -107,7 +107,7 @@ export const navigation: readonly NavItem[] = [
     children: [
       { name: 'Therapy registration', href: '/therapy/new', roles: ['ADMIN', 'RECEPTIONIST'] },
       { name: 'Therapy cases', href: '/therapy', roles: ['ADMIN', 'RECEPTIONIST'] },
-      { name: 'Packages', href: '/therapy/packages', roles: ['ADMIN', 'RECEPTIONIST'] },
+      { name: 'Therapy masters', href: '/therapy/packages', roles: ['ADMIN', 'RECEPTIONIST'] },
     ],
   },
   {
@@ -118,7 +118,7 @@ export const navigation: readonly NavItem[] = [
     children: [
       { name: 'Dashboard', href: '/lab', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
       {
-        name: 'Audio procedure creation',
+        name: 'Audio masters',
         href: '/lab/procedures/new',
         roles: ['ADMIN', 'RECEPTIONIST'],
       },
@@ -157,6 +157,34 @@ export const navigation: readonly NavItem[] = [
     href: '/documents',
     icon: 'documents',
     roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING'],
+  },
+  {
+    name: 'Attendance',
+    href: '/attendance',
+    icon: 'attendance',
+    roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING', 'INVENTORY'],
+    children: [
+      {
+        name: 'Today',
+        href: '/attendance',
+        roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING', 'INVENTORY'],
+      },
+      {
+        name: 'My history',
+        href: '/attendance/history',
+        roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING', 'INVENTORY'],
+      },
+      {
+        name: 'Leave',
+        href: '/attendance/leave',
+        roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING', 'INVENTORY'],
+      },
+      { name: 'Dashboard', href: '/admin/attendance', roles: ['ADMIN'] },
+      { name: 'Leave & holidays', href: '/admin/attendance/leave', roles: ['ADMIN'] },
+      { name: 'Settings', href: '/admin/attendance/settings', roles: ['ADMIN'] },
+      { name: 'Devices', href: '/admin/attendance/devices', roles: ['ADMIN'] },
+      { name: 'Reports', href: '/admin/attendance/reports', roles: ['ADMIN'] },
+    ],
   },
   // WhatsApp communication is not available in v1 — hidden from nav
   {
@@ -210,12 +238,13 @@ export const DASHBOARD_WIDGETS: Record<AppRole, string[]> = {
     'active_therapy',
     'today_revenue',
     'outstanding',
+    'total_discount',
     'low_stock',
     'ai_usage',
   ],
   DOCTOR: ['total_patients', 'today_op', 'active_therapy'],
   RECEPTIONIST: ['total_patients', 'today_op', 'active_therapy'],
-  BILLING: ['today_revenue', 'outstanding', 'total_patients'],
+  BILLING: ['today_revenue', 'outstanding', 'total_discount', 'total_patients'],
   INVENTORY: ['low_stock', 'today_revenue'],
 };
 

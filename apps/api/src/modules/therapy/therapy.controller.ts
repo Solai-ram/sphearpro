@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -98,6 +99,7 @@ export class TherapyController {
     @Param('id') id: string,
     @Body() body: {
       name?: string;
+      therapyTypeId?: string;
       totalSessions?: number;
       frequency?: 'WEEKLY' | 'TWICE_WEEKLY' | 'THREE_TIMES_WEEKLY' | 'DAILY' | 'EVERY_TWO_WEEKS' | 'MONTHLY' | 'CUSTOM';
       price?: number;
@@ -107,6 +109,16 @@ export class TherapyController {
     @CurrentUser() user: { clinicId?: string },
   ) {
     return this.therapyService.updatePackage(id, requireClinicId(user), body);
+  }
+
+  @Delete('packages/:id')
+  @Authenticated('therapy.package.create')
+  @ApiOperation({ summary: 'Delete therapy package' })
+  async deletePackage(
+    @Param('id') id: string,
+    @CurrentUser() user: { clinicId?: string },
+  ) {
+    return this.therapyService.deletePackage(id, requireClinicId(user));
   }
 
   // ---------------------------------------------------------------------------

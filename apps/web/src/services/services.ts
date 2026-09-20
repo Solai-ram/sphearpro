@@ -8,6 +8,7 @@ export interface ServiceMaster {
   name: string;
   category: ServiceMasterCategory;
   price: number;
+  discount?: number;
   description?: string | null;
   isActive: boolean;
   createdAt: string;
@@ -43,6 +44,7 @@ export const servicesApi = {
     name: string;
     category?: ServiceMasterCategory;
     price: number;
+    discount?: number;
     description?: string;
     isActive?: boolean;
   }) {
@@ -57,6 +59,7 @@ export const servicesApi = {
       name?: string;
       category?: ServiceMasterCategory;
       price?: number;
+      discount?: number;
       description?: string;
       isActive?: boolean;
     },
@@ -64,6 +67,11 @@ export const servicesApi = {
     return fetchApi<ServiceMaster>(`/services/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  },
+  delete(id: string) {
+    return fetchApi<ServiceMaster>(`/services/${id}`, {
+      method: 'DELETE',
     });
   },
 };

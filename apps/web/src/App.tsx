@@ -53,6 +53,14 @@ import { UsersPage } from './pages/admin/UsersPage';
 import { RolesPage } from './pages/admin/RolesPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
+import { AttendanceTodayPage } from './pages/attendance/AttendanceTodayPage';
+import { AttendanceHistoryPage } from './pages/attendance/AttendanceHistoryPage';
+import { AttendanceLeavePage } from './pages/attendance/AttendanceLeavePage';
+import { AdminAttendanceDashboardPage } from './pages/admin/attendance/AdminAttendanceDashboardPage';
+import { AdminAttendanceSettingsPage } from './pages/admin/attendance/AdminAttendanceSettingsPage';
+import { AdminAttendanceDevicesPage } from './pages/admin/attendance/AdminAttendanceDevicesPage';
+import { AdminAttendanceReportsPage } from './pages/admin/attendance/AdminAttendanceReportsPage';
+import { AdminAttendanceLeavePage } from './pages/admin/attendance/AdminAttendanceLeavePage';
 import { ClinicSetupPage } from './pages/onboarding/ClinicSetupPage';
 import { PricingPage } from './pages/subscription/PricingPage';
 import { SubscriptionBillingPage } from './pages/subscription/SubscriptionBillingPage';
@@ -193,6 +201,14 @@ function App() {
         {/* <Route path="/communication" element={<CommunicationPage />} /> */}
         {/* <Route path="/communication/*" element={<CommunicationPage />} /> */}
         <Route path="/ai" element={<AiPage />} />
+        <Route path="/attendance" element={<AttendanceTodayPage />} />
+        <Route path="/attendance/history" element={<AttendanceHistoryPage />} />
+        <Route path="/attendance/leave" element={<AttendanceLeavePage />} />
+        <Route path="/admin/attendance" element={<AdminAttendanceDashboardPage />} />
+        <Route path="/admin/attendance/settings" element={<AdminAttendanceSettingsPage />} />
+        <Route path="/admin/attendance/devices" element={<AdminAttendanceDevicesPage />} />
+        <Route path="/admin/attendance/reports" element={<AdminAttendanceReportsPage />} />
+        <Route path="/admin/attendance/leave" element={<AdminAttendanceLeavePage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/:type" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />

@@ -16,8 +16,9 @@ const PAY_METHODS = [
 
 const createOpCaseSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
-  serviceId: z.string().min(1, 'Service is required'),
-  consultationFee: z.string().min(1, 'Consultation fee is required').pipe(z.coerce.number().min(0, 'Fee cannot be negative')),
+  serviceId: z.string().optional(),
+  consultationFee: z.union([z.string(), z.number()]).pipe(z.coerce.number().min(0, 'Fee cannot be negative')),
+  discount: z.union([z.string(), z.number()]).optional(),
   paymentMethod: z.enum(['CASH', 'UPI', 'CARD']),
   paymentReference: z.string().optional(),
   chiefComplaint: z.string().optional(),
@@ -60,11 +61,12 @@ export function ClinicalCreatePage() {
     setValue,
     formState: { errors },
   } = useForm<CreateOpCaseFormInput, unknown, CreateOpCaseForm>({
-    // zodResolver input/output diverge when schemas use .pipe(z.coerce…)
     resolver: zodResolver(createOpCaseSchema) as any,
     defaultValues: {
       paymentMethod: 'CASH',
       serviceId: '',
+      consultationFee: 0,
+      discount: 0,
       vitals: {},
     },
   });
@@ -72,8 +74,19 @@ export function ClinicalCreatePage() {
   const selectedServiceId = watch('serviceId');
 
   const filteredServices = useMemo(
-    () => [...services].sort((a, b) => a.name.localeCompare(b.name)),
-    [services],
+    () => [...services].sort((a, b) => {
+      // If review, put REVIEW category first
+      if (isReview) {
+        if (a.category === 'REVIEW' && b.category !== 'REVIEW') return -1;
+        if (b.category === 'REVIEW' && a.category !== 'REVIEW') return 1;
+      } else {
+        // If regular OP, put CONSULTATION category first
+        if (a.category === 'CONSULTATION' && b.category !== 'CONSULTATION') return -1;
+        if (b.category === 'CONSULTATION' && a.category !== 'CONSULTATION') return 1;
+      }
+      return a.name.localeCompare(b.name);
+    }),
+    [services, isReview],
   );
 
   useEffect(() => {
@@ -87,17 +100,35 @@ export function ClinicalCreatePage() {
     if (!filteredServices.length) return;
     const current = watch('serviceId');
     if (current && filteredServices.some((s) => s.id === current)) return;
-    const pick = filteredServices[0];
+
+    let pick: ServiceMaster | undefined;
+    if (isReview) {
+      pick = filteredServices.find((s) => s.category === 'REVIEW') ||
+             filteredServices.find((s) => s.name.toLowerCase().includes('review')) ||
+             filteredServices[0];
+    } else {
+      pick = filteredServices.find((s) => s.category === 'CONSULTATION' && !s.name.toLowerCase().includes('specialist')) ||
+             filteredServices.find((s) => s.category === 'CONSULTATION') ||
+             filteredServices.find((s) => s.name.toLowerCase().includes('consultation')) ||
+             filteredServices[0];
+    }
+
     if (pick) {
       setValue('serviceId', pick.id);
-      setValue('consultationFee', String(pick.price));
+      setValue('consultationFee', pick.price);
+      setValue('discount', pick.discount || 0);
     }
-  }, [filteredServices, setValue, watch]);
+  }, [filteredServices, isReview, setValue, watch]);
 
   useEffect(() => {
     if (!selectedServiceId) return;
     const service = services.find((s) => s.id === selectedServiceId);
-    if (service) setValue('consultationFee', String(service.price));
+    if (service) {
+      setValue('consultationFee', service.price);
+      if (service.discount != null) {
+        setValue('discount', service.discount);
+      }
+    }
   }, [selectedServiceId, services, setValue]);
 
   useEffect(() => {
@@ -117,7 +148,7 @@ export function ClinicalCreatePage() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [patientSearch, isReview]);
+  }, [patientSearch]);
 
   const lastOpLabel = (patient: PatientSearchHit) => {
     const last = patient.opCases?.[0];
@@ -129,7 +160,7 @@ export function ClinicalCreatePage() {
   const searchPatients = async (query: string) => {
     setIsSearching(true);
     try {
-      setSearchResults(await patientsApi.search(query, 10, { opRegistered: isReview }));
+      setSearchResults(await patientsApi.search(query, 10));
     } catch (err) {
       console.error('Patient search failed:', err);
     } finally {
@@ -153,6 +184,7 @@ export function ClinicalCreatePage() {
       const billing = {
         serviceId: data.serviceId,
         consultationFee: data.consultationFee,
+        discount: data.discount ? Number(data.discount) : 0,
         paymentMethod: data.paymentMethod,
         paymentReference: data.paymentReference || undefined,
       };
@@ -296,21 +328,45 @@ export function ClinicalCreatePage() {
               Create services in Patients → Service masters first.
             </p>
           )}
-          <label htmlFor="consultationFee" className="label mt-3">Price (₹) *</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
-            <input
-              {...register('consultationFee')}
-              id="consultationFee"
-              type="number"
-              min="0"
-              step="0.01"
-              className="input pl-7"
-              placeholder="0.00"
-              readOnly
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            <div>
+              <label htmlFor="consultationFee" className="label">Price (₹) *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                <input
+                  {...register('consultationFee')}
+                  id="consultationFee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="input pl-7 font-medium"
+                  placeholder="0.00"
+                />
+              </div>
+              {errors.consultationFee && <p className="mt-1 text-sm text-red-600">{errors.consultationFee.message}</p>}
+            </div>
+            <div>
+              <label htmlFor="discount" className="label text-emerald-700 font-semibold">Discount (₹)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 text-sm">₹</span>
+                <input
+                  {...register('discount')}
+                  id="discount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="input pl-7 border-emerald-300 bg-emerald-50/30 text-emerald-900 font-medium"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
           </div>
-          {errors.consultationFee && <p className="mt-1 text-sm text-red-600">{errors.consultationFee.message}</p>}
+          <div className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-sm mt-2">
+            <span className="text-gray-600 font-medium">Net Payable:</span>
+            <span className="font-mono font-bold text-blue-600 text-base">
+              ₹{Math.max(0, Number(watch('consultationFee') || 0) - Number(watch('discount') || 0)).toFixed(2)}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-gray-500">Auto-filled from the selected service. Bill is created on register.</p>
           <label className="label mt-3">Mode of payment *</label>
           <div className="flex gap-2">

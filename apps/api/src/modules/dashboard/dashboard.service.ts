@@ -78,6 +78,7 @@ export class DashboardService {
       queuedMessages,
       aiToday,
       products,
+      discountAgg,
     ] = await Promise.all([
       this.prisma.patient.count({ where: { clinicId, deletedAt: null } }),
       this.prisma.patient.count({ where: { clinicId, deletedAt: null, createdAt: { gte: from, lte: to } } }),
@@ -111,6 +112,10 @@ export class DashboardService {
         where: { clinicId, isActive: true },
         include: { transactions: { orderBy: { createdAt: 'desc' }, take: 1 } },
       }),
+      this.prisma.invoice.aggregate({
+        where: { clinicId, issueDate: { gte: from, lte: to }, status: { not: 'CANCELLED' } },
+        _sum: { discountTotal: true },
+      }),
     ]);
 
     const invoiceRows = Array.isArray(pendingInvoices) ? pendingInvoices : [];
@@ -142,6 +147,7 @@ export class DashboardService {
       whatsappQueued: queuedMessages,
       aiRequestsToday: aiToday._count || 0,
       aiTokensToday: (aiToday._sum?.promptTokens || 0) + (aiToday._sum?.completionTokens || 0),
+      totalDiscount: money(discountAgg?._sum?.discountTotal || 0),
       range: {
         period: range.period,
         startDate: ymd(from),

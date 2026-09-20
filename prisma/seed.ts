@@ -47,6 +47,19 @@ const PERMISSIONS = [
   { name: 'staff.edit', module: 'staff', action: 'edit', description: 'Edit staff profiles' },
   { name: 'staff.delete', module: 'staff', action: 'delete', description: 'Delete staff profiles' },
 
+  // STAFF ATTENDANCE (HR punch — not therapy session attendance)
+  { name: 'attendance.view_own', module: 'attendance', action: 'view_own', description: 'View own attendance' },
+  { name: 'attendance.check_in', module: 'attendance', action: 'check_in', description: 'Check in' },
+  { name: 'attendance.check_out', module: 'attendance', action: 'check_out', description: 'Check out' },
+  { name: 'attendance.view_all', module: 'attendance', action: 'view_all', description: 'View all staff attendance' },
+  { name: 'attendance.manage', module: 'attendance', action: 'manage', description: 'Manage attendance' },
+  { name: 'attendance.correct', module: 'attendance', action: 'correct', description: 'Manually correct attendance' },
+  { name: 'attendance.reports', module: 'attendance', action: 'reports', description: 'Attendance reports' },
+  { name: 'attendance.manage_settings', module: 'attendance', action: 'manage_settings', description: 'Configure attendance/geofence' },
+  { name: 'attendance.manage_devices', module: 'attendance', action: 'manage_devices', description: 'Manage attendance devices' },
+  { name: 'attendance.request_leave', module: 'attendance', action: 'request_leave', description: 'Request leave' },
+  { name: 'attendance.approve_leave', module: 'attendance', action: 'approve_leave', description: 'Approve or reject leave' },
+
   // CLINICAL
   { name: 'clinical.op.create', module: 'clinical', action: 'op.create', description: 'Create OP cases' },
   { name: 'clinical.op.view', module: 'clinical', action: 'op.view', description: 'View OP cases' },
@@ -157,6 +170,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'ai.note_draft',
     'ai.review',
     'dashboard.view',
+    'attendance.view_own',
+    'attendance.check_in',
+    'attendance.check_out',
+    'attendance.request_leave',
   ],
   THERAPIST: [
     'users.view',
@@ -183,6 +200,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'ai.note_draft',
     'ai.review',
     'dashboard.view',
+    'attendance.view_own',
+    'attendance.check_in',
+    'attendance.check_out',
+    'attendance.request_leave',
   ],
   RECEPTIONIST: [
     'users.view',
@@ -218,6 +239,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'documents.download',
     'documents.delete',
     'dashboard.view',
+    'attendance.view_own',
+    'attendance.check_in',
+    'attendance.check_out',
+    'attendance.request_leave',
   ],
   BILLING: [
     'users.view',
@@ -239,6 +264,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'dashboard.view',
     'reports.view',
     'reports.export',
+    'attendance.view_own',
+    'attendance.check_in',
+    'attendance.check_out',
+    'attendance.request_leave',
   ],
   INVENTORY: [
     'users.view',
@@ -253,6 +282,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'dashboard.view',
     'reports.view',
     'reports.export',
+    'attendance.view_own',
+    'attendance.check_in',
+    'attendance.check_out',
+    'attendance.request_leave',
   ],
 };
 

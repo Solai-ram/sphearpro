@@ -12,6 +12,7 @@ import type { OpCase } from '../../types/clinical';
 import type { Product } from '../../types/inventory';
 import type { ProductSale } from '../../types/inventory';
 import type { LabDashboard, LabProcedure } from '../../types/lab';
+import { formatAddress, ageFromDob } from '../../lib/age';
 
 type ReportId = 'clinical' | 'op' | 'therapy' | 'lab' | 'billing' | 'revenue' | 'stock' | 'sales' | 'returns' | 'ai';
 
@@ -20,10 +21,10 @@ const REPORTS: {
   name: string;
   hint: string;
   ranged: boolean;
-  csv?: 'clinical' | 'therapy' | 'financial' | 'inventory' | 'ai';
+  csv?: 'clinical' | 'op' | 'therapy' | 'financial' | 'inventory' | 'ai';
 }[] = [
   { id: 'clinical', name: 'OP clinical', hint: 'OP cases registered in the period', ranged: true, csv: 'clinical' },
-  { id: 'op', name: 'OP visits', hint: 'Visit register for the selected period', ranged: true },
+  { id: 'op', name: 'OP visits', hint: 'Visit register for the selected period', ranged: true, csv: 'op' },
   { id: 'therapy', name: 'Therapy', hint: 'Cases, sessions, attendance and package use', ranged: true, csv: 'therapy' },
   { id: 'lab', name: 'Audio', hint: 'Tests billed and procedure catalogue', ranged: false },
   { id: 'billing', name: 'Billing', hint: 'Invoices issued, billed vs collected', ranged: true },
@@ -232,8 +233,11 @@ function OpBody({ data }: { data: { data?: OpCase[]; meta?: { total: number } } 
           <tr>
             <th>Date</th>
             <th>Patient</th>
+            <th>Age</th>
+            <th>Address</th>
             <th>Complaint</th>
             <th>Doctor</th>
+            <th>Mode of payment</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -245,12 +249,25 @@ function OpBody({ data }: { data: { data?: OpCase[]; meta?: { total: number } } 
                 <span className="invoice-item-name">{c.patient?.name}</span>
                 <span className="invoice-item-type">{c.patient?.patientNumber}</span>
               </td>
+              <td>{ageFromDob(c.patient?.dateOfBirth) != null ? `${ageFromDob(c.patient?.dateOfBirth)} yrs` : '—'}</td>
+              <td className="max-w-[200px] text-xs text-gray-700" title={formatAddress(c.patient?.address)}>
+                {formatAddress(c.patient?.address) || '—'}
+              </td>
               <td>{c.chiefComplaint || '—'}</td>
               <td>{c.provider?.name || '—'}</td>
+              <td>
+                {c.paymentMethod ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    {METHOD_LABEL[c.paymentMethod] || c.paymentMethod}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )}
+              </td>
               <td>{c.status}</td>
             </tr>
           ))}
-          {rows.length === 0 && <EmptyRow cols={5} text="No OP visits in this period." />}
+          {rows.length === 0 && <EmptyRow cols={8} text="No OP visits in this period." />}
         </tbody>
       </table>
     </>

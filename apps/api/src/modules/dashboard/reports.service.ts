@@ -158,7 +158,122 @@ export class ReportsService {
     };
   }
 
+  async opVisits(clinicId: string, startDate?: string, endDate?: string) {
+    const { from, to } = this.range(startDate, endDate);
+    const opCases = await this.prisma.opCase.findMany({
+      where: { clinicId, createdAt: { gte: from, lte: to } },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            patientNumber: true,
+            phone: true,
+            address: true,
+          },
+        },
+        provider: { select: { id: true, name: true } },
+      },
+    });
+
+    const opCaseIds = opCases.map((c: any) => c.id);
+    const patientIds = Array.from(new Set(opCases.map((c: any) => c.patientId).filter(Boolean)));
+
+    const invoiceItems = opCaseIds.length > 0 ? await this.prisma.invoiceItem.findMany({
+      where: {
+        OR: [
+          { referenceId: { in: opCaseIds } },
+          {
+            billableType: 'OP_VISIT',
+            invoice: {
+              clinicId,
+              patientId: { in: patientIds },
+            },
+          },
+        ],
+      },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            notes: true,
+            patientId: true,
+            status: true,
+            payments: {
+              select: {
+                method: true,
+                amount: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    }) : [];
+
+    const rows = opCases.map((c: any) => {
+      const direct = invoiceItems.find(
+        (it: any) => it.referenceId === c.id || (it.invoice?.notes && it.invoice.notes.includes(c.id)),
+      );
+      const fallback = !direct ? invoiceItems.find((it: any) => it.invoice?.patientId === c.patientId) : null;
+      const inv = direct?.invoice || fallback?.invoice;
+      const paymentMethod = inv?.payments?.[0]?.method || (c.vitals as any)?.paymentMethod || '—';
+      return {
+        id: c.id,
+        date: c.createdAt,
+        patientName: c.patient?.name,
+        patientNumber: c.patient?.patientNumber,
+        address: c.patient?.address,
+        phone: c.patient?.phone || '—',
+        doctor: c.provider?.name || '—',
+        complaint: c.chiefComplaint || '—',
+        paymentMethod,
+        status: c.status,
+      };
+    });
+
+    return {
+      from,
+      to,
+      total: rows.length,
+      rows,
+    };
+  }
+
   toCsv(type: string, payload: any): string {
+    if (type === 'op') {
+      const header = 'Date,Patient Name,Patient ID,Address,Phone,Doctor,Complaint,Mode of Payment,Status';
+      const lines = (payload.rows || []).map((r: any) => {
+        let addrStr = '';
+        if (r.address) {
+          if (typeof r.address === 'string') addrStr = r.address;
+          else if (r.address.line) addrStr = r.address.line;
+          else {
+            addrStr = [r.address.street, r.address.city, r.address.state, r.address.pincode, r.address.country]
+              .filter(Boolean)
+              .join(', ');
+          }
+        }
+        const cleanAddr = `"${addrStr.replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+        const cleanComplaint = `"${(r.complaint || '').replace(/"/g, '""')}"`;
+        const cleanName = `"${(r.patientName || '').replace(/"/g, '""')}"`;
+        const dateStr = new Date(r.date).toLocaleDateString('en-IN');
+        return [
+          dateStr,
+          cleanName,
+          r.patientNumber,
+          cleanAddr,
+          r.phone,
+          r.doctor,
+          cleanComplaint,
+          r.paymentMethod,
+          r.status,
+        ].join(',');
+      });
+      return [header, ...lines].join('\n');
+    }
     if (type === 'inventory') {
       const header = 'sku,name,category,stock,threshold,low_stock,sold_qty,sold_value';
       const lines = (payload.products || []).map((p: any) =>

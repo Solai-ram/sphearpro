@@ -47,7 +47,11 @@ export function InvoicesListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Billing</h1>
-          <p className="text-gray-500">Outstanding: {rupees(outstanding)}</p>
+          <p className="text-gray-500 flex items-center gap-3 text-sm">
+            <span>Outstanding: <strong className="text-gray-900">{rupees(outstanding)}</strong></span>
+            <span>·</span>
+            <span>Page discounts: <strong className="text-emerald-700">{rupees(invoices.reduce((s, i) => s + Number(i.discountTotal || 0), 0))}</strong></span>
+          </p>
         </div>
         <div className="flex gap-2">
           <Link to="/billing/payments" className="btn-secondary">Payments</Link>
@@ -87,6 +91,7 @@ export function InvoicesListPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Discount</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Outstanding</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th></th>
@@ -97,7 +102,16 @@ export function InvoicesListPage() {
                 <tr key={inv.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-sm">{inv.invoiceNumber}</td>
                   <td className="px-4 py-3">{inv.patient?.name}</td>
-                  <td className="px-4 py-3">{rupees(inv.grandTotal)}</td>
+                  <td className="px-4 py-3 font-medium">{rupees(inv.grandTotal)}</td>
+                  <td className="px-4 py-3">
+                    {Number(inv.discountTotal || 0) > 0 ? (
+                      <span className="text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-xs">
+                        −{rupees(inv.discountTotal)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{rupees(inv.outstanding)}</td>
                   <td className="px-4 py-3"><span className={STATUS_BADGE[inv.status]}>{inv.status.replace('_', ' ')}</span></td>
                   <td className="px-4 py-3"><Link to={`/billing/${inv.id}`} className="text-blue-600 text-sm font-medium">View</Link></td>

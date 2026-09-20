@@ -47,6 +47,9 @@ export const inventoryApi = {
   updateProduct(id: string, data: Partial<Product>): Promise<Product> {
     return fetchApi(`/inventory/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
+  deleteProduct(id: string): Promise<{ success: boolean; softDeleted: boolean; message: string }> {
+    return fetchApi(`/inventory/products/${id}`, { method: 'DELETE' });
+  },
   getLowStock(): Promise<Product[]> {
     return fetchApi('/inventory/low-stock');
   },

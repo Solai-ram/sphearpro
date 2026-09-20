@@ -10,7 +10,7 @@ function money(value: unknown) {
 
 function serialize(row: any) {
   if (!row) return row;
-  return { ...row, price: money(row.price) };
+  return { ...row, price: money(row.price), discount: money(row.discount || 0) };
 }
 
 @Injectable()
@@ -93,6 +93,7 @@ export class ServicesService {
     name: string;
     category?: ServiceMasterCategory;
     price: number;
+    discount?: number;
     description?: string;
     isActive?: boolean;
     createdBy?: string;
@@ -125,6 +126,7 @@ export class ServicesService {
         name,
         category,
         price: money(data.price),
+        discount: money(data.discount || 0),
         description: data.description?.trim() || null,
         isActive: data.isActive !== false,
         createdBy: data.createdBy,
@@ -139,7 +141,7 @@ export class ServicesService {
       entityType: 'ServiceMaster',
       entityId: row.id,
       result: 'SUCCESS',
-      metadata: { code, name, category, price: money(data.price) },
+      metadata: { code, name, category, price: money(data.price), discount: money(data.discount || 0) },
     });
 
     return serialize(row);
@@ -152,6 +154,7 @@ export class ServicesService {
       name?: string;
       category?: ServiceMasterCategory;
       price?: number;
+      discount?: number;
       description?: string;
       isActive?: boolean;
       updatedBy?: string;
@@ -167,6 +170,7 @@ export class ServicesService {
         name: data.name?.trim(),
         category: data.category,
         price: data.price == null ? undefined : money(data.price),
+        discount: data.discount == null ? undefined : money(data.discount),
         description: data.description === undefined ? undefined : data.description.trim() || null,
         isActive: data.isActive,
       },
@@ -184,5 +188,15 @@ export class ServicesService {
     });
 
     return serialize(row);
+  }
+
+  async delete(id: string, clinicId: string) {
+    await this.findById(id, clinicId);
+    return this.prisma.serviceMaster.delete({ where: { id } }).catch(async () => {
+      return this.prisma.serviceMaster.update({
+        where: { id },
+        data: { isActive: false },
+      });
+    });
   }
 }

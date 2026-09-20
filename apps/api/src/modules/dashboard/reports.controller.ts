@@ -72,6 +72,7 @@ export class ReportsController {
     const type = (typeParam || 'financial').toLowerCase();
     let payload: any;
     if (type === 'clinical') payload = await this.reportsService.clinical(clinicId, startDate, endDate);
+    else if (type === 'op') payload = await this.reportsService.opVisits(clinicId, startDate, endDate);
     else if (type === 'therapy') payload = await this.reportsService.therapy(clinicId, startDate, endDate);
     else if (type === 'inventory') payload = await this.reportsService.inventory(clinicId);
     else if (type === 'ai') payload = await this.reportsService.aiUsage(clinicId, startDate, endDate);

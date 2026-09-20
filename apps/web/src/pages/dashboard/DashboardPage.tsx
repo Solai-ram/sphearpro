@@ -11,6 +11,7 @@ import {
   Stethoscope,
   ArrowUpRight,
   Sparkles,
+  Percent,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { dashboardApi, type DashboardCharts, type DashboardMetrics } from '../../services/dashboard';
@@ -64,6 +65,7 @@ function widgetCard(key: string, stats: DashboardMetrics | null, when: string, _
     // WhatsApp communication disabled in v1
     // whatsapp: { label: 'WhatsApp failed', value: stats?.whatsappFailed || 0, icon: MessageSquare, href: '/communication', tone: 'rose' },
     ai_usage: { label: `AI requests ${when}`, value: stats?.aiRequestsToday || 0, icon: Brain, href: '/ai', tone: 'indigo' },
+    total_discount: { label: `Discount ${when}`, value: rupees(stats?.totalDiscount), icon: Percent, href: '/billing', tone: 'amber', hint: 'Total discount given' },
   };
   return map[key];
 }

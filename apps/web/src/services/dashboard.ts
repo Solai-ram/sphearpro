@@ -16,6 +16,7 @@ export interface DashboardMetrics {
   whatsappQueued: number;
   aiRequestsToday: number;
   aiTokensToday: number;
+  totalDiscount: number;
   range?: { period: string; startDate: string; endDate: string };
 }
 

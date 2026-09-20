@@ -73,8 +73,11 @@ export function InvoiceDetailPage() {
       </div>
       {error && <div className="p-4 rounded-lg bg-red-50 text-red-700 flex gap-2"><AlertCircle className="w-5 h-5" />{error}</div>}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${Number(invoice.discountTotal || 0) > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
         <div className="card p-4"><p className="text-sm text-gray-500">Total</p><p className="text-xl font-semibold">{rupees(invoice.grandTotal)}</p></div>
+        {Number(invoice.discountTotal || 0) > 0 && (
+          <div className="card p-4"><p className="text-sm text-gray-500">Discount</p><p className="text-xl font-semibold text-green-700">− {rupees(invoice.discountTotal)}</p></div>
+        )}
         <div className="card p-4"><p className="text-sm text-gray-500">Paid</p><p className="text-xl font-semibold">{rupees(invoice.paidAmount)}</p></div>
         <div className="card p-4"><p className="text-sm text-gray-500">Outstanding</p><p className="text-xl font-semibold">{rupees(invoice.outstanding)}</p></div>
       </div>
@@ -89,6 +92,8 @@ export function InvoiceDetailPage() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Warranty</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Colour</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Discount</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
             </tr>
           </thead>
@@ -101,6 +106,8 @@ export function InvoiceDetailPage() {
                 <td className="px-4 py-3 text-sm">{item.warranty || '—'}</td>
                 <td className="px-4 py-3 text-sm">{item.colour || '—'}</td>
                 <td className="px-4 py-3 text-sm">{item.quantity}</td>
+                <td className="px-4 py-3 text-sm">{rupees(item.unitPrice)}</td>
+                <td className="px-4 py-3 text-sm text-green-700">{Number(item.discount || 0) > 0 ? `− ${rupees(item.discount)}` : '—'}</td>
                 <td className="px-4 py-3">{rupees(item.lineTotal)}</td>
               </tr>
             ))}

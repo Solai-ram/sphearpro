@@ -13,6 +13,7 @@ export interface CreateOpCaseInput {
   chiefComplaint?: string;
   vitals?: Record<string, any>;
   consultationFee?: number;
+  discount?: number;
   serviceId?: string;
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;
@@ -98,6 +99,11 @@ export class ClinicalService {
       if (existing) throw new BadRequestException('An OP case already exists for this appointment');
     }
 
+    const vitals = data.vitals ? { ...data.vitals } : {};
+    if (data.paymentMethod) {
+      vitals.paymentMethod = data.paymentMethod;
+    }
+
     const opCase = await this.prisma.opCase.create({
       data: {
         clinicId: data.clinicId,
@@ -105,7 +111,7 @@ export class ClinicalService {
         providerId: provider?.id ?? null,
         appointmentId: data.appointmentId,
         chiefComplaint: data.chiefComplaint,
-        vitals: data.vitals as any,
+        vitals: Object.keys(vitals).length > 0 ? (vitals as any) : null,
         status: 'OPEN',
       },
       include: this.opCaseInclude(),
@@ -140,9 +146,12 @@ export class ClinicalService {
       metadata: { opCaseId: opCase.id, isReview: Boolean(data.isReview) },
     });
 
-    if (data.consultationFee != null && data.consultationFee > 0) {
+    const fee = data.consultationFee != null ? Number(data.consultationFee) : undefined;
+    const hasBilling = (fee != null && fee >= 0) || Boolean(data.serviceId);
+    if (hasBilling) {
       await this.billConsultation(opCase.id, data.clinicId, {
-        unitPrice: data.consultationFee,
+        unitPrice: fee ?? 0,
+        discount: data.discount,
         serviceId: data.serviceId,
         paymentMethod: data.paymentMethod || 'CASH',
         paymentReference: data.paymentReference,
@@ -154,15 +163,12 @@ export class ClinicalService {
   }
 
   async createOpReview(data: CreateOpCaseInput) {
-    const prior = await this.prisma.opCase.findFirst({
-      where: { patientId: data.patientId, clinicId: data.clinicId },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, createdAt: true },
+    const patient = await this.prisma.patient.findFirst({
+      where: { id: data.patientId, clinicId: data.clinicId, deletedAt: null },
+      select: { id: true, name: true },
     });
-    if (!prior) {
-      throw new BadRequestException(
-        'This patient has no previous OP registration. Use New OP registration for a first visit.',
-      );
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
     }
     return this.createOpCase({ ...data, isReview: true });
   }
@@ -187,7 +193,33 @@ export class ClinicalService {
       include: this.opCaseInclude(),
     });
     if (!opCase) throw new NotFoundException('OP case not found');
-    return opCase;
+
+    const invoiceItem = await this.prisma.invoiceItem.findFirst({
+      where: {
+        billableType: 'OP_VISIT',
+        referenceId: id,
+        invoice: { clinicId },
+      },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            payments: { select: { method: true, amount: true, status: true } },
+          },
+        },
+      },
+    });
+
+    const paymentMethod = invoiceItem?.invoice?.payments?.[0]?.method || (opCase.vitals as any)?.paymentMethod || null;
+
+    return {
+      ...opCase,
+      paymentMethod,
+      invoiceNumber: invoiceItem?.invoice?.invoiceNumber || null,
+      invoiceStatus: invoiceItem?.invoice?.status || null,
+    };
   }
 
   async findByPatient(patientId: string, params: { page?: number; limit?: number; status?: string; clinicId: string }) {
@@ -250,16 +282,80 @@ export class ClinicalService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          patient: { select: { id: true, name: true, patientNumber: true } },
-          provider: { select: { id: true, name: true } },
+          patient: {
+            select: {
+              id: true,
+              name: true,
+              patientNumber: true,
+              phone: true,
+              email: true,
+              gender: true,
+              dateOfBirth: true,
+              address: true,
+            },
+          },
+          provider: { select: { id: true, name: true, staffType: true } },
           _count: { select: { diagnoses: true, prescriptions: true, followUps: true } },
         },
       }),
       this.prisma.opCase.count({ where }),
     ]);
 
+    const opCaseIds = data.map((c: any) => c.id);
+    const patientIds = Array.from(new Set(data.map((c: any) => c.patientId).filter(Boolean)));
+
+    const invoiceItems = opCaseIds.length > 0 ? await this.prisma.invoiceItem.findMany({
+      where: {
+        OR: [
+          { referenceId: { in: opCaseIds } },
+          {
+            billableType: 'OP_VISIT',
+            invoice: {
+              clinicId: params.clinicId,
+              patientId: { in: patientIds },
+            },
+          },
+        ],
+      },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            notes: true,
+            patientId: true,
+            status: true,
+            createdAt: true,
+            payments: {
+              select: {
+                method: true,
+                amount: true,
+                status: true,
+                paidAt: true,
+              },
+            },
+          },
+        },
+      },
+    }) : [];
+
+    const enrichedData = data.map((c: any) => {
+      const direct = invoiceItems.find(
+        (it: any) => it.referenceId === c.id || (it.invoice?.notes && it.invoice.notes.includes(c.id)),
+      );
+      const fallback = !direct ? invoiceItems.find((it: any) => it.invoice?.patientId === c.patientId) : null;
+      const inv = direct?.invoice || fallback?.invoice;
+      const paymentMethod = inv?.payments?.[0]?.method || c.vitals?.paymentMethod || null;
+      return {
+        ...c,
+        paymentMethod,
+        invoiceNumber: inv?.invoiceNumber || null,
+        invoiceStatus: inv?.status || null,
+      };
+    });
+
     return {
-      data,
+      data: enrichedData,
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -562,6 +658,7 @@ export class ClinicalService {
 
   private async billConsultation(opCaseId: string, clinicId: string, data: {
     unitPrice: number;
+    discount?: number;
     serviceId?: string;
     paymentMethod?: CreateOpCaseInput['paymentMethod'];
     paymentReference?: string;
@@ -592,17 +689,23 @@ export class ClinicalService {
     if (data.serviceId) {
       const service = await this.prisma.serviceMaster.findFirst({
         where: { id: data.serviceId, clinicId, isActive: true },
-      });
-      if (!service) {
-        throw new BadRequestException('Selected service was not found or is inactive');
+      }).catch(() => null);
+      if (service) {
+        description = service.name;
+        if (opCase.chiefComplaint) {
+          description = `${description} (${opCase.chiefComplaint})`;
+        }
+        // Prefer submitted fee (may be overridden), fallback to master price
+        if (unitPrice <= 0 && Number(service.price) > 0) unitPrice = Number(service.price);
+        if (data.discount == null && Number(service.discount) > 0) {
+          data.discount = Number(service.discount);
+        }
       }
-      description = service.name;
-      if (opCase.chiefComplaint) {
-        description = `${description} (${opCase.chiefComplaint})`;
-      }
-      // Prefer submitted fee (may be overridden), fallback to master price
-      if (unitPrice <= 0) unitPrice = Number(service.price);
     }
+
+    const fee = unitPrice;
+    const discount = Math.max(0, Number(data.discount || 0));
+    const payable = Math.max(0, fee - discount);
 
     return this.billingService.createInvoice({
       clinicId,
@@ -615,13 +718,14 @@ export class ClinicalService {
           referenceId: opCase.id,
           description,
           quantity: 1,
-          unitPrice,
+          unitPrice: fee,
+          discount,
         },
       ],
       payment: data.paymentMethod
         ? {
             method: data.paymentMethod,
-            amount: unitPrice,
+            amount: payable,
             reference: data.paymentReference,
           }
         : undefined,

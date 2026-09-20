@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Menu, ChevronLeft, ChevronRight, ChevronDown, LogOut, User, LayoutDashboard, Users, Pill, FileText, DollarSign, Package, FolderOpen, MessageSquare, Brain, BarChart2, Settings, Shield, RefreshCw, FlaskConical, Calendar, Clock } from 'lucide-react';
+import { Menu, ChevronLeft, ChevronRight, ChevronDown, LogOut, User, LayoutDashboard, Users, Pill, FileText, DollarSign, Package, FolderOpen, MessageSquare, Brain, BarChart2, Settings, Shield, RefreshCw, FlaskConical, Calendar, Clock, Fingerprint } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { canAccessPath, navForUser, primaryAppRole, type NavChild } from '../auth/rbac';
 import { useSubscriptionAccess, isSubscriptionOpenPath, needsClinicSetup } from '../auth/SubscriptionAccess';
@@ -19,6 +19,7 @@ const icons = {
   billing: DollarSign,
   inventory: Package,
   documents: FolderOpen,
+  attendance: Fingerprint,
   communication: MessageSquare,
   ai: Brain,
   reports: BarChart2,
@@ -80,10 +81,21 @@ export function Layout() {
   const [refreshing, setRefreshing] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { isRestricted } = useSubscriptionAccess();
+  const { isRestricted, hasFeature } = useSubscriptionAccess();
 
   const roles = user?.roles || [];
-  const filteredNav = navForUser(roles, user?.staffType);
+  const filteredNav = navForUser(roles, user?.staffType).filter((item) => {
+    if (item.href === '/attendance' || item.href.startsWith('/admin/attendance')) {
+      // When subscription features are unknown (null access), keep nav visible.
+      if (!user?.subscriptionAccess) return true;
+      return hasFeature('STAFF_ATTENDANCE');
+    }
+    if (item.href === '/inventory') {
+      if (!user?.subscriptionAccess) return true;
+      return hasFeature('INVENTORY');
+    }
+    return true;
+  });
 
   useEffect(() => {
     setSidebarOpen(false);

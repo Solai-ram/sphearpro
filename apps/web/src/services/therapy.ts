@@ -68,6 +68,25 @@ export const therapyApi = {
     return fetchApi('/therapy/packages', { method: 'POST', body: JSON.stringify(data) });
   },
 
+  async updatePackage(
+    id: string,
+    data: Partial<{
+      therapyTypeId: string;
+      name: string;
+      totalSessions: number;
+      frequency: SessionFrequency;
+      price: number;
+      validityDays: number;
+      isActive: boolean;
+    }>,
+  ): Promise<TherapyPackage> {
+    return fetchApi(`/therapy/packages/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  },
+
+  async deletePackage(id: string): Promise<TherapyPackage> {
+    return fetchApi(`/therapy/packages/${id}`, { method: 'DELETE' });
+  },
+
   async assignPackage(caseId: string, data: { packageId: string; startDate?: string }): Promise<PatientPackage> {
     return fetchApi(`/therapy/cases/${caseId}/packages`, { method: 'POST', body: JSON.stringify(data) });
   },
