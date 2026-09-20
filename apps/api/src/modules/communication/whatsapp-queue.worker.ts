@@ -19,14 +19,19 @@ export class WhatsAppQueueWorker implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const connection = process.env.REDIS_URL
+      ? { url: process.env.REDIS_URL }
+      : {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          password: process.env.REDIS_PASSWORD,
+        };
+
     this.worker = new Worker(
       'whatsapp',
       async (job: Job) => this.processSend(job),
       {
-        connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379'),
-        },
+        connection,
         concurrency: 5,
       },
     );
