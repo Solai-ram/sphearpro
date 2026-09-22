@@ -5,6 +5,15 @@ import { AuditService } from '../audit/audit.service';
 import { searchIcd10 } from './icd10.data';
 import { BillingService } from '../billing/billing.service';
 
+export interface BillingItemInput {
+  billableType?: 'OTHER' | 'LAB_TEST' | 'OP_VISIT';
+  description: string;
+  quantity?: number;
+  unitPrice: number;
+  discount?: number;
+  referenceId?: string;
+}
+
 export interface CreateOpCaseInput {
   patientId: string;
   clinicId: string;
@@ -15,6 +24,7 @@ export interface CreateOpCaseInput {
   consultationFee?: number;
   discount?: number;
   serviceId?: string;
+  billingItems?: BillingItemInput[];
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;
   createdBy?: string;
@@ -146,17 +156,47 @@ export class ClinicalService {
       metadata: { opCaseId: opCase.id, isReview: Boolean(data.isReview) },
     });
 
-    const fee = data.consultationFee != null ? Number(data.consultationFee) : undefined;
-    const hasBilling = (fee != null && fee >= 0) || Boolean(data.serviceId);
-    if (hasBilling) {
-      await this.billConsultation(opCase.id, data.clinicId, {
-        unitPrice: fee ?? 0,
-        discount: data.discount,
-        serviceId: data.serviceId,
-        paymentMethod: data.paymentMethod || 'CASH',
-        paymentReference: data.paymentReference,
-        createdBy: data.createdBy,
-      });
+    if (data.billingItems && data.billingItems.length > 0) {
+      const itemsToBill = data.billingItems.filter((it) => it.unitPrice > 0 || (it.discount && it.discount > 0));
+      if (itemsToBill.length > 0) {
+        const subtotal = itemsToBill.reduce((sum, it) => sum + (it.unitPrice || 0) * (it.quantity || 1), 0);
+        const discountTotal = itemsToBill.reduce((sum, it) => sum + (it.discount || 0), 0);
+        const payable = Math.max(0, subtotal - discountTotal);
+        await this.billingService.createInvoice({
+          clinicId: data.clinicId,
+          patientId: opCase.patientId,
+          notes: data.isReview ? `OP review — OP ${opCase.id}` : `OP registration — OP ${opCase.id}`,
+          createdBy: data.createdBy,
+          items: itemsToBill.map((it) => ({
+            billableType: (it.billableType as any) || 'OTHER',
+            referenceId: it.referenceId || opCase.id,
+            description: it.description,
+            quantity: it.quantity && it.quantity > 0 ? it.quantity : 1,
+            unitPrice: it.unitPrice,
+            discount: it.discount || 0,
+          })),
+          payment: (data.paymentMethod && payable > 0)
+            ? {
+                method: data.paymentMethod,
+                amount: payable,
+                reference: data.paymentReference,
+              }
+            : undefined,
+        });
+      }
+    } else {
+      const fee = data.consultationFee != null ? Number(data.consultationFee) : undefined;
+      const hasBilling = (fee != null && fee > 0) || Boolean(data.serviceId);
+      if (hasBilling) {
+        await this.billConsultation(opCase.id, data.clinicId, {
+          unitPrice: fee ?? 0,
+          discount: data.discount,
+          serviceId: data.serviceId,
+          paymentMethod: data.paymentMethod || 'CASH',
+          paymentReference: data.paymentReference,
+          createdBy: data.createdBy,
+        });
+      }
     }
 
     return this.findById(opCase.id, data.clinicId);
@@ -664,8 +704,17 @@ export class ClinicalService {
     paymentReference?: string;
     createdBy?: string;
   }) {
+    if (data.unitPrice <= 0 && data.serviceId) {
+      const service = await this.prisma.serviceMaster.findFirst({
+        where: { id: data.serviceId, clinicId, isActive: true },
+      }).catch(() => null);
+      if (service && Number(service.price) > 0) {
+        data.unitPrice = Number(service.price);
+      }
+    }
+
     if (data.unitPrice <= 0) {
-      throw new BadRequestException('Consultation fee must be greater than 0');
+      return null;
     }
 
     const opCase = await this.findById(opCaseId, clinicId);

@@ -43,3 +43,34 @@ export function nextOccurrence(current: Date, frequency: SessionFrequency, index
 export function withRemaining<T extends { totalSessions: number; usedSessions: number }>(pkg: T) {
   return { ...pkg, remainingSessions: pkg.totalSessions - pkg.usedSessions };
 }
+
+export function extractDaySlots(goals: unknown): string[] {
+  if (!goals) return [];
+  if (Array.isArray(goals)) {
+    if (goals.every((g) => typeof g === 'string')) return goals;
+    return [];
+  }
+  if (typeof goals === 'object' && goals !== null) {
+    const obj = goals as Record<string, any>;
+    if (Array.isArray(obj.daySlots)) return obj.daySlots;
+  }
+  return [];
+}
+
+export function extractTimeSlot(goals: unknown): string | null {
+  if (!goals || typeof goals !== 'object' || Array.isArray(goals)) return null;
+  return (goals as Record<string, any>).timeSlot || null;
+}
+
+export function parseWeekday(slot: string): number {
+  const lower = slot.toLowerCase();
+  if (lower.includes('sun')) return 0;
+  if (lower.includes('mon')) return 1;
+  if (lower.includes('tue')) return 2;
+  if (lower.includes('wed')) return 3;
+  if (lower.includes('thu')) return 4;
+  if (lower.includes('fri')) return 5;
+  if (lower.includes('sat')) return 6;
+  return -1;
+}
+

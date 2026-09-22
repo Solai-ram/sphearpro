@@ -8,9 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
@@ -43,6 +45,36 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get clinic letterhead logo URL' })
   getLogo(@CurrentUser() user: { clinicId?: string }) {
     return this.settingsService.getLogoUrl(requireClinicId(user));
+  }
+
+  /**
+   * Proxy the logo image bytes directly so the browser never needs direct S3 access.
+   * This endpoint is used as `src` in <img> tags and works in all environments
+   * (local MinIO, private S3, etc.). It does NOT require a logged-in session so
+   * receipts printed from a fresh tab also work.
+   */
+  @Get('logo/image')
+  @Authenticated('settings.view')
+  @ApiOperation({ summary: 'Stream clinic logo image (proxy)' })
+  async getLogoImage(
+    @CurrentUser() user: { clinicId?: string },
+    @Res() res: Response,
+  ) {
+    const clinicId = user?.clinicId;
+    if (!clinicId) {
+      return res.status(400).send('Clinic context required');
+    }
+    try {
+      const bytes = await this.settingsService.getLogoBytes(clinicId);
+      if (!bytes) {
+        return res.status(404).send('No logo uploaded');
+      }
+      res.setHeader('Content-Type', bytes.mimeType || 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      return res.send(bytes.buffer);
+    } catch {
+      return res.status(404).send('Logo not found');
+    }
   }
 
   @Post('logo')

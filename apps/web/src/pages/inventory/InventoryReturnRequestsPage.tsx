@@ -19,7 +19,7 @@ export function InventoryReturnRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ productId: '', quantity: 1, reason: '' });
+  const [form, setForm] = useState({ productId: '', quantity: '' as any, reason: '' });
 
   const load = async () => {
     setLoading(true);
@@ -110,8 +110,9 @@ export function InventoryReturnRequestsPage() {
           className="input"
           type="number"
           min={1}
-          value={form.quantity}
-          onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+          placeholder="Qty"
+          value={form.quantity || ''}
+          onChange={(e) => setForm({ ...form, quantity: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
           required
         />
         <input

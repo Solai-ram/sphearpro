@@ -32,9 +32,12 @@ export const therapyApi = {
   async createCase(data: {
     patientId: string;
     therapistId: string;
+    doctorIds?: string[];
     title: string;
     assessment?: string;
     goals?: unknown;
+    daySlots?: string[];
+    timeSlot?: string;
     opCaseId?: string;
   }): Promise<TherapyCase> {
     return fetchApi('/therapy/cases', { method: 'POST', body: JSON.stringify(data) });
@@ -87,7 +90,7 @@ export const therapyApi = {
     return fetchApi(`/therapy/packages/${id}`, { method: 'DELETE' });
   },
 
-  async assignPackage(caseId: string, data: { packageId: string; startDate?: string }): Promise<PatientPackage> {
+  async assignPackage(caseId: string, data: { packageId: string; startDate?: string; doctorIds?: string[] }): Promise<PatientPackage> {
     return fetchApi(`/therapy/cases/${caseId}/packages`, { method: 'POST', body: JSON.stringify(data) });
   },
 

@@ -105,6 +105,15 @@ export interface OpCasesListResponse {
   };
 }
 
+export interface BillingItemInput {
+  billableType?: 'OTHER' | 'LAB_TEST' | 'OP_VISIT';
+  description: string;
+  quantity?: number;
+  unitPrice: number;
+  discount?: number;
+  referenceId?: string;
+}
+
 export interface CreateOpCaseInput {
   patientId: string;
   providerId?: string;
@@ -113,6 +122,7 @@ export interface CreateOpCaseInput {
   consultationFee?: number;
   discount?: number;
   serviceId?: string;
+  billingItems?: BillingItemInput[];
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
   paymentReference?: string;
 }

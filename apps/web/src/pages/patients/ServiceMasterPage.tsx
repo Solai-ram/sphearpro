@@ -9,8 +9,8 @@ function rupees(value?: number) {
 const emptyForm = {
   name: '',
   category: 'CONSULTATION' as ServiceMasterCategory,
-  price: 0,
-  discount: 0,
+  price: '' as unknown as number,
+  discount: '' as unknown as number,
   description: '',
 };
 
@@ -27,8 +27,8 @@ export function ServiceMasterPage() {
   const [editForm, setEditForm] = useState({
     name: '',
     category: 'CONSULTATION' as ServiceMasterCategory,
-    price: 0,
-    discount: 0,
+    price: '' as unknown as number,
+    discount: '' as unknown as number,
     description: '',
     isActive: true,
   });
@@ -83,8 +83,8 @@ export function ServiceMasterPage() {
     setEditForm({
       name: row.name,
       category: row.category || 'CONSULTATION',
-      price: Number(row.price),
-      discount: Number(row.discount || 0),
+      price: Number(row.price) > 0 ? Number(row.price) : ('' as any),
+      discount: Number(row.discount) > 0 ? Number(row.discount) : ('' as any),
       description: row.description || '',
       isActive: row.isActive !== false,
     });
@@ -198,8 +198,9 @@ export function ServiceMasterPage() {
             type="number"
             min={0}
             step="0.01"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+            placeholder="0.00"
+            value={form.price === 0 ? '' : (form.price ?? '')}
+            onChange={(e) => setForm({ ...form, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
             required
           />
         </div>
@@ -210,9 +211,9 @@ export function ServiceMasterPage() {
             type="number"
             min={0}
             step="0.01"
-            value={form.discount}
-            onChange={(e) => setForm({ ...form, discount: Number(e.target.value) })}
-            placeholder="0"
+            value={form.discount === 0 ? '' : (form.discount ?? '')}
+            onChange={(e) => setForm({ ...form, discount: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
+            placeholder="0.00"
           />
         </div>
         <div className="md:col-span-4">
@@ -279,8 +280,9 @@ export function ServiceMasterPage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    value={editForm.price}
-                    onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                    placeholder="0.00"
+                    value={editForm.price === 0 ? '' : (editForm.price ?? '')}
+                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                     required
                   />
                 </div>
@@ -291,9 +293,9 @@ export function ServiceMasterPage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    value={editForm.discount}
-                    onChange={(e) => setEditForm({ ...editForm, discount: Number(e.target.value) })}
-                    placeholder="0"
+                    value={editForm.discount === 0 ? '' : (editForm.discount ?? '')}
+                    onChange={(e) => setEditForm({ ...editForm, discount: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
+                    placeholder="0.00"
                   />
                 </div>
               </div>

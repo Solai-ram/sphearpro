@@ -287,9 +287,12 @@ export class PatientsService {
         patientNumber: true,
         name: true,
         phone: true,
+        alternatePhone: true,
         email: true,
         gender: true,
         dateOfBirth: true,
+        address: true,
+        emergencyContact: true,
         opCases: {
           orderBy: { createdAt: 'desc' },
           take: 5,

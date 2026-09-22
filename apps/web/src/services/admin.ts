@@ -109,8 +109,31 @@ export const settingsApi = {
   save(items: Array<{ key: string; value: unknown; group?: string }>) {
     return fetchApi<Setting[]>('/settings', { method: 'PATCH', body: JSON.stringify({ items }) });
   },
-  getLogo() {
-    return fetchApi<{ url: string | null; fileName: string; mimeType: string }>('/settings/logo');
+  async getLogo(): Promise<{ url: string | null; fileName: string; mimeType: string }> {
+    // First check if a logo exists
+    const meta = await fetchApi<{ url: string | null; fileName: string; mimeType: string; hasLogo?: boolean }>('/settings/logo');
+    if (!meta.hasLogo || !meta.url) {
+      return { url: null, fileName: meta.fileName || '', mimeType: meta.mimeType || '' };
+    }
+    // Fetch the actual image bytes through the proxy endpoint (with auth bearer header)
+    try {
+      const token = getAccessToken();
+      const response = await fetch(`${API_BASE}/settings/logo/image`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) return { url: null, fileName: meta.fileName, mimeType: meta.mimeType };
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      return { url: dataUrl, fileName: meta.fileName, mimeType: meta.mimeType };
+    } catch {
+      return { url: null, fileName: meta.fileName, mimeType: meta.mimeType };
+    }
   },
   async uploadLogo(file: File) {
     const token = getAccessToken();

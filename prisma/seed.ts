@@ -395,7 +395,7 @@ async function main() {
   // Per-clinic support ADMIN (platform console login-as)
   {
     const { supportEmailForSlug, generateSupportPassword, encryptSupportPassword } = await import(
-      '../apps/api/src/modules/auth/support-credentials'
+      '../apps/api/src/modules/auth/support-credentials.ts'
     );
     const supportEmail = supportEmailForSlug(DEFAULT_CLINIC_SLUG);
     const adminRoleId = roleMap.get('ADMIN');

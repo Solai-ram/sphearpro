@@ -23,7 +23,7 @@ const emptyForm = {
   name: '',
   department: 'Audiology',
   sampleType: 'NONE' as LabSampleType,
-  price: 0,
+  price: '' as unknown as number,
   tatHours: 24,
   instructions: '',
 };
@@ -45,7 +45,7 @@ export function LabProcedureCreatePage() {
     name: '',
     department: 'Audiology',
     sampleType: 'NONE' as LabSampleType,
-    price: 0,
+    price: '' as unknown as number,
     tatHours: 24,
     instructions: '',
     isActive: true,
@@ -107,8 +107,8 @@ export function LabProcedureCreatePage() {
       name: proc.name,
       department: proc.department,
       sampleType: proc.sampleType,
-      price: Number(proc.price),
-      tatHours: proc.tatHours,
+      price: Number(proc.price) > 0 ? Number(proc.price) : ('' as any),
+      tatHours: proc.tatHours ? Number(proc.tatHours) : ('' as any),
       instructions: proc.instructions || '',
       isActive: proc.isActive !== false,
     });
@@ -205,7 +205,7 @@ export function LabProcedureCreatePage() {
         </div>
         <div>
           <label className="label text-xs">Price (₹) *</label>
-          <input className="input" type="number" min={0} step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} required />
+          <input className="input" type="number" min={0} step="0.01" placeholder="0.00" value={form.price === 0 ? '' : (form.price ?? '')} onChange={(e) => setForm({ ...form, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
         </div>
         <div>
           <label className="label text-xs">TAT (hours)</label>
@@ -263,7 +263,7 @@ export function LabProcedureCreatePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label text-xs">Price (₹) *</label>
-                  <input className="input" type="number" min={0} step="0.01" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })} required />
+                  <input className="input" type="number" min={0} step="0.01" placeholder="0.00" value={editForm.price === 0 ? '' : (editForm.price ?? '')} onChange={(e) => setEditForm({ ...editForm, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
                 </div>
                 <div>
                   <label className="label text-xs">TAT (hours)</label>

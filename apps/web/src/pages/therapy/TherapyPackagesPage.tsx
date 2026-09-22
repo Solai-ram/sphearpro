@@ -18,10 +18,10 @@ export function TherapyPackagesPage() {
   const [form, setForm] = useState({
     therapyTypeId: '',
     name: '',
-    totalSessions: 12,
+    totalSessions: '' as any,
     frequency: 'WEEKLY' as SessionFrequency,
-    price: 10000,
-    validityDays: 90,
+    price: '' as any,
+    validityDays: '' as any,
   });
 
   // Edit state
@@ -29,10 +29,10 @@ export function TherapyPackagesPage() {
   const [editForm, setEditForm] = useState({
     therapyTypeId: '',
     name: '',
-    totalSessions: 12,
+    totalSessions: '' as any,
     frequency: 'WEEKLY' as SessionFrequency,
-    price: 10000,
-    validityDays: 90,
+    price: '' as any,
+    validityDays: '' as any,
     isActive: true,
   });
   const [isUpdating, setIsUpdating] = useState(false);
@@ -60,7 +60,12 @@ export function TherapyPackagesPage() {
     e.preventDefault();
     setError(null);
     try {
-      await therapyApi.createPackage(form);
+      await therapyApi.createPackage({
+        ...form,
+        totalSessions: Number(form.totalSessions || 1),
+        price: Number(form.price || 0),
+        validityDays: form.validityDays ? Number(form.validityDays) : undefined,
+      });
       setShowForm(false);
       setSuccessMsg(`Created package "${form.name}"`);
       setTimeout(() => setSuccessMsg(null), 4000);
@@ -75,10 +80,10 @@ export function TherapyPackagesPage() {
     setEditForm({
       therapyTypeId: pkg.therapyTypeId || (pkg.therapyType?.id || ''),
       name: pkg.name,
-      totalSessions: pkg.totalSessions,
+      totalSessions: pkg.totalSessions ? Number(pkg.totalSessions) : ('' as any),
       frequency: pkg.frequency,
-      price: Number(pkg.price),
-      validityDays: pkg.validityDays ?? 90,
+      price: Number(pkg.price) > 0 ? Number(pkg.price) : ('' as any),
+      validityDays: pkg.validityDays ? Number(pkg.validityDays) : ('' as any),
       isActive: pkg.isActive !== false,
     });
   };
@@ -170,7 +175,7 @@ export function TherapyPackagesPage() {
           </div>
           <div>
             <label className="label text-xs">Total Sessions *</label>
-            <input className="input" type="number" min={1} value={form.totalSessions} onChange={(e) => setForm({ ...form, totalSessions: Number(e.target.value) })} required />
+            <input className="input" type="number" min={1} placeholder="12" value={form.totalSessions || ''} onChange={(e) => setForm({ ...form, totalSessions: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
           </div>
           <div>
             <label className="label text-xs">Frequency</label>
@@ -180,11 +185,11 @@ export function TherapyPackagesPage() {
           </div>
           <div>
             <label className="label text-xs">Price (₹) *</label>
-            <input className="input" type="number" min={0} step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} required />
+            <input className="input" type="number" min={0} step="0.01" placeholder="0.00" value={form.price === 0 ? '' : (form.price || '')} onChange={(e) => setForm({ ...form, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
           </div>
           <div>
             <label className="label text-xs">Validity (Days)</label>
-            <input className="input" type="number" min={1} value={form.validityDays} onChange={(e) => setForm({ ...form, validityDays: Number(e.target.value) })} />
+            <input className="input" type="number" min={1} placeholder="90" value={form.validityDays || ''} onChange={(e) => setForm({ ...form, validityDays: e.target.value === '' ? ('' as any) : Number(e.target.value) })} />
           </div>
           <div className="md:col-span-3 flex justify-end gap-2 pt-2 border-t">
             <button className="btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
@@ -220,7 +225,7 @@ export function TherapyPackagesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label text-xs">Total Sessions *</label>
-                  <input className="input" type="number" min={1} value={editForm.totalSessions} onChange={(e) => setEditForm({ ...editForm, totalSessions: Number(e.target.value) })} required />
+                  <input className="input" type="number" min={1} placeholder="12" value={editForm.totalSessions || ''} onChange={(e) => setEditForm({ ...editForm, totalSessions: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
                 </div>
                 <div>
                   <label className="label text-xs">Frequency</label>
@@ -232,11 +237,11 @@ export function TherapyPackagesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label text-xs">Price (₹) *</label>
-                  <input className="input" type="number" min={0} step="0.01" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })} required />
+                  <input className="input" type="number" min={0} step="0.01" placeholder="0.00" value={editForm.price === 0 ? '' : (editForm.price || '')} onChange={(e) => setEditForm({ ...editForm, price: e.target.value === '' ? ('' as any) : Number(e.target.value) })} required />
                 </div>
                 <div>
                   <label className="label text-xs">Validity (Days)</label>
-                  <input className="input" type="number" min={1} value={editForm.validityDays} onChange={(e) => setEditForm({ ...editForm, validityDays: Number(e.target.value) })} />
+                  <input className="input" type="number" min={1} placeholder="90" value={editForm.validityDays || ''} onChange={(e) => setEditForm({ ...editForm, validityDays: e.target.value === '' ? ('' as any) : Number(e.target.value) })} />
                 </div>
               </div>
               <div className="flex items-center gap-2 pt-1">

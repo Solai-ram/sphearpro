@@ -11,12 +11,19 @@ export function InventoryStockEntryPage() {
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    productId: string;
+    type: Exclude<StockTxnType, 'SALE' | 'RETURN'>;
+    quantity: number;
+    supplierId: string;
+    unitCost?: number;
+    note: string;
+  }>({
     productId: '',
-    type: 'PURCHASE' as Exclude<StockTxnType, 'SALE' | 'RETURN'>,
+    type: 'PURCHASE',
     quantity: 1,
     supplierId: '',
-    unitCost: 0,
+    unitCost: undefined,
     note: '',
   });
 
@@ -79,7 +86,7 @@ export function InventoryStockEntryPage() {
           <option value="">Supplier (optional)</option>
           {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <input className="input" type="number" min={0} step="0.01" placeholder="Unit cost" value={form.unitCost} onChange={(e) => setForm({ ...form, unitCost: Number(e.target.value) })} />
+        <input className="input" type="number" min={0} step="0.01" placeholder="Unit cost" value={form.unitCost === 0 ? '' : (form.unitCost ?? '')} onChange={(e) => setForm({ ...form, unitCost: e.target.value === '' ? undefined : Number(e.target.value) })} />
         <input className="input" placeholder="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         <div className="col-span-2 md:col-span-3 flex justify-end">
           <button className="btn-primary" type="submit">Record movement</button>

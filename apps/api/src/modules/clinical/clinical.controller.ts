@@ -9,7 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
-import { ClinicalService } from './clinical.service';
+import { ClinicalService, BillingItemInput } from './clinical.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Authenticated } from '../../common/decorators/auth.decorator';
 import { requireClinicId } from '../../common/tenant/clinic-context';
@@ -107,6 +107,7 @@ export class ClinicalController {
       consultationFee?: number;
       discount?: number;
       serviceId?: string;
+      billingItems?: BillingItemInput[];
       paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
       paymentReference?: string;
     },
@@ -127,6 +128,7 @@ export class ClinicalController {
       consultationFee?: number;
       discount?: number;
       serviceId?: string;
+      billingItems?: BillingItemInput[];
       paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'NET_BANKING' | 'WALLET' | 'OTHER';
       paymentReference?: string;
     },

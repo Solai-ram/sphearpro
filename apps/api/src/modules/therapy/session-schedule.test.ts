@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, nextOccurrence, withRemaining } from './session-schedule';
+import { addDays, nextOccurrence, withRemaining, extractDaySlots, extractTimeSlot, parseWeekday } from './session-schedule';
 
 describe('session-schedule', () => {
   const start = new Date('2026-01-05T10:00:00.000Z');
@@ -49,5 +49,29 @@ describe('session-schedule', () => {
       usedSessions: 3,
       remainingSessions: 7,
     });
+  });
+
+  it('parseWeekday maps weekday names correctly', () => {
+    expect(parseWeekday('Every Monday')).toBe(1);
+    expect(parseWeekday('Tuesday')).toBe(2);
+    expect(parseWeekday('Every Wednesday')).toBe(3);
+    expect(parseWeekday('Thu')).toBe(4);
+    expect(parseWeekday('Friday')).toBe(5);
+    expect(parseWeekday('Every Saturday')).toBe(6);
+    expect(parseWeekday('Sunday')).toBe(0);
+    expect(parseWeekday('Invalid')).toBe(-1);
+  });
+
+  it('extractDaySlots handles array and structured object format', () => {
+    expect(extractDaySlots(['Every Monday', 'Every Wednesday'])).toEqual(['Every Monday', 'Every Wednesday']);
+    expect(extractDaySlots({ daySlots: ['Every Tuesday', 'Every Thursday'] })).toEqual(['Every Tuesday', 'Every Thursday']);
+    expect(extractDaySlots([{ text: 'Legacy goal' }])).toEqual([]);
+    expect(extractDaySlots(null)).toEqual([]);
+  });
+
+  it('extractTimeSlot extracts timeSlot from object', () => {
+    expect(extractTimeSlot({ timeSlot: '10:00 AM' })).toBe('10:00 AM');
+    expect(extractTimeSlot(['Every Monday'])).toBeNull();
+    expect(extractTimeSlot(null)).toBeNull();
   });
 });

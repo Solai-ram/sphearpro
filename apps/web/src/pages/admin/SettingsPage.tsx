@@ -448,7 +448,8 @@ export function SettingsPage() {
                 className="input"
                 type="number"
                 min={0}
-                value={form['billing.defaultTaxRate'] || '0'}
+                placeholder="0"
+                value={form['billing.defaultTaxRate'] ?? ''}
                 onChange={(e) => set('billing.defaultTaxRate', e.target.value)}
               />
             </div>

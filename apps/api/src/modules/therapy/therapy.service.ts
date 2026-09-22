@@ -15,6 +15,9 @@ import {
   addDays,
   nextOccurrence,
   withRemaining,
+  extractDaySlots,
+  extractTimeSlot,
+  parseWeekday,
 } from './session-schedule';
 
 const DEFAULT_SESSION_FEE = 500;
@@ -191,9 +194,12 @@ export class TherapyService {
   async createCase(data: {
     patientId: string;
     therapistId: string;
+    doctorIds?: string[];
     title: string;
     assessment?: string;
     goals?: unknown;
+    daySlots?: string[];
+    timeSlot?: string;
     opCaseId?: string;
     createdBy?: string;
     clinicId: string;
@@ -215,6 +221,14 @@ export class TherapyService {
     const therapist = await this.prisma.staffProfile.findFirst({ where: { id: data.therapistId, clinicId: data.clinicId } });
     if (!therapist) throw new NotFoundException('Therapist not found');
 
+    const goalsData = (data.daySlots && data.daySlots.length > 0) || data.timeSlot
+      ? {
+          daySlots: data.daySlots || [],
+          timeSlot: data.timeSlot || null,
+          legacyGoals: data.goals,
+        }
+      : data.goals;
+
     const therapyCase = await this.prisma.therapyCase.create({
       data: {
         clinicId: data.clinicId,
@@ -222,7 +236,7 @@ export class TherapyService {
         therapistId: data.therapistId,
         title: data.title,
         assessment: data.assessment,
-        goals: data.goals as any,
+        goals: goalsData as any,
         status: 'ACTIVE',
       },
       include: this.caseInclude(),
@@ -237,7 +251,7 @@ export class TherapyService {
       entityType: 'TherapyCase',
       entityId: therapyCase.id,
       result: 'SUCCESS',
-      metadata: { therapistId: data.therapistId, title: data.title, opCaseId: opCase.id },
+      metadata: { therapistId: data.therapistId, doctorIds: data.doctorIds, title: data.title, opCaseId: opCase.id, daySlots: data.daySlots },
     });
 
     await this.addTimelineEvent({
@@ -249,7 +263,11 @@ export class TherapyService {
       metadata: { therapyCaseId: therapyCase.id, opCaseId: opCase.id },
     });
 
-    return therapyCase;
+    return {
+      ...therapyCase,
+      daySlots: extractDaySlots(therapyCase.goals),
+      timeSlot: extractTimeSlot(therapyCase.goals),
+    };
   }
 
   async findCaseById(id: string, clinicId: string) {
@@ -277,6 +295,8 @@ export class TherapyService {
 
     return {
       ...therapyCase,
+      daySlots: extractDaySlots(therapyCase.goals),
+      timeSlot: extractTimeSlot(therapyCase.goals),
       packages: (therapyCase.packages || []).map(withRemaining),
       pendingDoctorNotes,
     };
@@ -337,7 +357,13 @@ export class TherapyService {
       this.prisma.therapyCase.count({ where }),
     ]);
 
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    const formattedData = data.map((c: any) => ({
+      ...c,
+      daySlots: extractDaySlots(c.goals),
+      timeSlot: extractTimeSlot(c.goals),
+    }));
+
+    return { data: formattedData, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   async updateCase(
@@ -387,7 +413,7 @@ export class TherapyService {
   async assignPackage(
     therapyCaseId: string,
     clinicId: string,
-    data: { packageId: string; startDate?: Date | string; createdBy?: string },
+    data: { packageId: string; startDate?: Date | string; createdBy?: string; doctorIds?: string[] },
   ) {
     const therapyCase = await this.prisma.therapyCase.findFirst({
       where: { id: therapyCaseId, clinicId },
@@ -418,15 +444,20 @@ export class TherapyService {
     });
 
     const startDate = data.startDate ? new Date(data.startDate) : purchasedAt;
+    const daySlots = extractDaySlots(therapyCase.goals);
+    const timeSlot = extractTimeSlot(therapyCase.goals);
     const sessions = await this.generateSessions({
       clinicId,
       therapyCaseId,
       therapistId: therapyCase.therapistId,
+      doctorIds: data.doctorIds,
       patientPackageId: patientPackage.id,
       totalSessions: catalog.totalSessions,
       frequency: catalog.frequency,
       startDate,
       expiryDate,
+      daySlots,
+      timeSlot,
     });
 
     await this.auditService.log({
@@ -507,6 +538,7 @@ export class TherapyService {
       frequency?: SessionFrequency;
       startDate?: Date | string;
       therapistId?: string;
+      doctorIds?: string[];
       createdBy?: string;
     },
   ) {
@@ -539,6 +571,7 @@ export class TherapyService {
       clinicId,
       therapyCaseId,
       therapistId: data.therapistId || therapyCase.therapistId,
+      doctorIds: data.doctorIds,
       patientPackageId,
       totalSessions,
       frequency,
@@ -568,40 +601,88 @@ export class TherapyService {
     clinicId: string;
     therapyCaseId: string;
     therapistId: string;
+    doctorIds?: string[];
     patientPackageId: string | null;
     totalSessions: number;
     frequency: SessionFrequency;
     startDate: Date;
     expiryDate: Date | null;
+    daySlots?: string[];
+    timeSlot?: string | null;
   }) {
     const sessions: { scheduledAt: Date }[] = [];
     let current = new Date(input.startDate);
     const now = new Date();
 
-    while (current <= now) {
-      current = nextOccurrence(current, input.frequency, sessions.length);
+    const targetWeekdays = (input.daySlots && input.daySlots.length > 0)
+      ? input.daySlots.map((d) => parseWeekday(d)).filter((w) => w !== -1)
+      : [];
+
+    let targetHours = 10;
+    let targetMinutes = 0;
+    if (input.timeSlot) {
+      const match = input.timeSlot.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        const ampm = match[3]?.toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        targetHours = h;
+        targetMinutes = m;
+      }
     }
 
-    let index = 0;
-    while (sessions.length < input.totalSessions) {
-      if (input.expiryDate && current > input.expiryDate) break;
-      sessions.push({ scheduledAt: new Date(current) });
-      current = nextOccurrence(current, input.frequency, index);
-      index += 1;
+    if (targetWeekdays.length > 0) {
+      current.setHours(targetHours, targetMinutes, 0, 0);
+      if (current <= now) {
+        current = addDays(current, 1);
+        current.setHours(targetHours, targetMinutes, 0, 0);
+      }
+
+      let safety = 0;
+      while (sessions.length < input.totalSessions && safety < 500) {
+        if (input.expiryDate && current > input.expiryDate) break;
+        if (targetWeekdays.includes(current.getDay())) {
+          sessions.push({ scheduledAt: new Date(current) });
+        }
+        current = addDays(current, 1);
+        safety++;
+      }
+    } else {
+      while (current <= now) {
+        current = nextOccurrence(current, input.frequency, sessions.length);
+      }
+
+      let index = 0;
+      while (sessions.length < input.totalSessions) {
+        if (input.expiryDate && current > input.expiryDate) break;
+        sessions.push({ scheduledAt: new Date(current) });
+        current = nextOccurrence(current, input.frequency, index);
+        index += 1;
+      }
     }
 
     if (sessions.length === 0) return [];
 
+    const doctorPool = (input.doctorIds && input.doctorIds.length > 0)
+      ? input.doctorIds
+      : [input.therapistId];
+
     const generatedAt = new Date();
     await this.prisma.therapySession.createMany({
-      data: sessions.map((s) => ({
-        clinicId: input.clinicId,
-        therapyCaseId: input.therapyCaseId,
-        patientPackageId: input.patientPackageId,
-        therapistId: input.therapistId,
-        scheduledAt: s.scheduledAt,
-        status: 'SCHEDULED',
-      })),
+      data: sessions.map((s, idx) => {
+        const assignedDoctorId = doctorPool[idx % doctorPool.length];
+        return {
+          clinicId: input.clinicId,
+          therapyCaseId: input.therapyCaseId,
+          patientPackageId: input.patientPackageId,
+          therapistId: assignedDoctorId,
+          doctorId: assignedDoctorId,
+          scheduledAt: s.scheduledAt,
+          status: 'SCHEDULED',
+        };
+      }),
     });
 
     return this.prisma.therapySession.findMany({

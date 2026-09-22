@@ -33,12 +33,12 @@ const emptyForm = {
   brand: '',
   name: '', // Model name
   categoryId: '',
-  unitPrice: 0,
-  taxRate: 0,
-  lowStockThreshold: 1,
-  initialStock: 0,
+  unitPrice: '' as unknown as number,
+  taxRate: '' as unknown as number,
+  lowStockThreshold: '' as unknown as number,
+  initialStock: '' as unknown as number,
   supplierId: '',
-  unitCost: 0,
+  unitCost: '' as unknown as number,
   serialNo: '',
   warranty: '2 years',
   colour: '',
@@ -53,7 +53,7 @@ function getBrandAndModel(p: Product): { brand: string; model: string } {
     const parts = p.model.trim().split(/\s+/);
     const brand = parts[0];
     const model = p.name && p.name !== 'Hearing Aid (A Complete Set)' ? p.name : parts.slice(1).join(' ') || parts[0];
-    return { brand, model };
+    return { brand, model: model || p.name };
   }
   return { brand: '—', model: p.name };
 }
@@ -83,9 +83,9 @@ export function InventoryItemMasterPage() {
     brand: '',
     name: '',
     categoryId: '',
-    unitPrice: 0,
-    taxRate: 0,
-    lowStockThreshold: 1,
+    unitPrice: '' as unknown as number,
+    taxRate: '' as unknown as number,
+    lowStockThreshold: '' as unknown as number,
     serialNo: '',
     warranty: '',
     colour: '',
@@ -194,9 +194,9 @@ export function InventoryItemMasterPage() {
       brand: brand !== '—' ? brand : '',
       name: model,
       categoryId: p.categoryId,
-      unitPrice: Number(p.unitPrice),
-      taxRate: Number(p.taxRate || 0),
-      lowStockThreshold: Number(p.lowStockThreshold || 1),
+      unitPrice: Number(p.unitPrice) > 0 ? Number(p.unitPrice) : ('' as any),
+      taxRate: Number(p.taxRate) > 0 ? Number(p.taxRate) : ('' as any),
+      lowStockThreshold: Number(p.lowStockThreshold) > 0 ? Number(p.lowStockThreshold) : ('' as any),
       serialNo: p.serialNo || '',
       warranty: p.warranty || '',
       colour: p.colour || '',
@@ -402,8 +402,8 @@ export function InventoryItemMasterPage() {
                 step="0.01"
                 required
                 placeholder="0.00"
-                value={form.unitPrice || ''}
-                onChange={(e) => setForm({ ...form, unitPrice: Number(e.target.value) })}
+                value={form.unitPrice === 0 ? '' : (form.unitPrice || '')}
+                onChange={(e) => setForm({ ...form, unitPrice: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
               />
             </div>
 
@@ -415,8 +415,8 @@ export function InventoryItemMasterPage() {
                 min={0}
                 step="0.01"
                 placeholder="0"
-                value={form.taxRate || ''}
-                onChange={(e) => setForm({ ...form, taxRate: Number(e.target.value) })}
+                value={form.taxRate === 0 ? '' : (form.taxRate || '')}
+                onChange={(e) => setForm({ ...form, taxRate: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
               />
             </div>
 
@@ -427,8 +427,8 @@ export function InventoryItemMasterPage() {
                 type="number"
                 min={0}
                 placeholder="1"
-                value={form.lowStockThreshold || ''}
-                onChange={(e) => setForm({ ...form, lowStockThreshold: Number(e.target.value) })}
+                value={form.lowStockThreshold === 0 ? '' : (form.lowStockThreshold || '')}
+                onChange={(e) => setForm({ ...form, lowStockThreshold: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
               />
             </div>
 
@@ -472,8 +472,8 @@ export function InventoryItemMasterPage() {
                 type="number"
                 min={0}
                 placeholder="0"
-                value={form.initialStock || ''}
-                onChange={(e) => setForm({ ...form, initialStock: Number(e.target.value) })}
+                value={form.initialStock === 0 ? '' : (form.initialStock || '')}
+                onChange={(e) => setForm({ ...form, initialStock: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
               />
             </div>
 
@@ -501,8 +501,8 @@ export function InventoryItemMasterPage() {
                 min={0}
                 step="0.01"
                 placeholder="0.00"
-                value={form.unitCost || ''}
-                onChange={(e) => setForm({ ...form, unitCost: Number(e.target.value) })}
+                value={form.unitCost === 0 ? '' : (form.unitCost || '')}
+                onChange={(e) => setForm({ ...form, unitCost: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
               />
             </div>
           </div>
@@ -745,9 +745,10 @@ export function InventoryItemMasterPage() {
                     type="number"
                     min={0}
                     step="0.01"
+                    placeholder="0.00"
                     required
-                    value={editForm.unitPrice}
-                    onChange={(e) => setEditForm({ ...editForm, unitPrice: Number(e.target.value) })}
+                    value={editForm.unitPrice === 0 ? '' : (editForm.unitPrice || '')}
+                    onChange={(e) => setEditForm({ ...editForm, unitPrice: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                   />
                 </div>
 
@@ -758,8 +759,9 @@ export function InventoryItemMasterPage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    value={editForm.taxRate}
-                    onChange={(e) => setEditForm({ ...editForm, taxRate: Number(e.target.value) })}
+                    placeholder="0"
+                    value={editForm.taxRate === 0 ? '' : (editForm.taxRate || '')}
+                    onChange={(e) => setEditForm({ ...editForm, taxRate: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                   />
                 </div>
 
@@ -769,8 +771,9 @@ export function InventoryItemMasterPage() {
                     className="input"
                     type="number"
                     min={0}
-                    value={editForm.lowStockThreshold}
-                    onChange={(e) => setEditForm({ ...editForm, lowStockThreshold: Number(e.target.value) })}
+                    placeholder="1"
+                    value={editForm.lowStockThreshold === 0 ? '' : (editForm.lowStockThreshold || '')}
+                    onChange={(e) => setEditForm({ ...editForm, lowStockThreshold: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                   />
                 </div>
 

@@ -22,7 +22,7 @@ export function AdminAttendanceSettingsPage() {
   const [shifts, setShifts]       = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [staff, setStaff]         = useState<any[]>([]);
-  const [shiftForm, setShiftForm] = useState({ name: 'General', startTime: '09:00', endTime: '18:00', graceMinutes: 10 });
+  const [shiftForm, setShiftForm] = useState({ name: 'General', startTime: '09:00', endTime: '18:00', graceMinutes: '' as any });
   const [assignForm, setAssignForm] = useState({ userId: '', shiftId: '' });
   const [saving, setSaving]       = useState(false);
   const [msg, setMsg]             = useState<string | null>(null);
@@ -79,8 +79,11 @@ export function AdminAttendanceSettingsPage() {
     setAddingShift(true);
     setError(null);
     try {
-      await attendanceApi.createShift(shiftForm);
-      setShiftForm({ name: 'General', startTime: '09:00', endTime: '18:00', graceMinutes: 10 });
+      await attendanceApi.createShift({
+        ...shiftForm,
+        graceMinutes: Number(shiftForm.graceMinutes || 0),
+      });
+      setShiftForm({ name: 'General', startTime: '09:00', endTime: '18:00', graceMinutes: '' as any });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add shift');
@@ -299,8 +302,8 @@ export function AdminAttendanceSettingsPage() {
             className="input"
             type="number"
             placeholder="Grace (min)"
-            value={shiftForm.graceMinutes}
-            onChange={(e) => setShiftForm({ ...shiftForm, graceMinutes: Number(e.target.value) })}
+            value={shiftForm.graceMinutes === 0 ? '' : (shiftForm.graceMinutes ?? '')}
+            onChange={(e) => setShiftForm({ ...shiftForm, graceMinutes: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
           />
           <input
             className="input"

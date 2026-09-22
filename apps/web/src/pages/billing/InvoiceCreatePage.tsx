@@ -321,7 +321,7 @@ export function InvoiceCreatePage() {
                   </div>
                   <div className="md:col-span-2">
                     <label className="label text-xs">Quantity</label>
-                    <input className="input" type="number" min={1} value={item.quantity || 1} onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })} />
+                    <input className="input" type="number" min={1} placeholder="1" value={item.quantity || ''} onChange={(e) => updateItem(index, { quantity: e.target.value === '' ? ('' as any) : Number(e.target.value) })} />
                   </div>
                   <div className="md:col-span-2">
                     <label className="label text-xs">Price (₹)</label>

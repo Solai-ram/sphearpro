@@ -129,7 +129,10 @@ export interface TherapyCase {
   therapistId: string;
   title: string;
   assessment?: string;
+  diagnosis?: string;
   goals?: unknown;
+  daySlots?: string[];
+  timeSlot?: string;
   status: TherapyCaseStatus;
   createdAt: string;
   updatedAt: string;

@@ -77,7 +77,7 @@ export function PatientModifyPage() {
       const age = ageFromDob(data.dateOfBirth);
       reset({
         name: data.name,
-        age: age == null ? '' : String(age),
+        age: age == null || age === 0 ? '' : String(age),
         gender: data.gender === 'FEMALE' || data.gender === 'MALE' || data.gender === 'OTHER' ? data.gender : '',
         phone: data.phone || '',
         email: data.email || '',

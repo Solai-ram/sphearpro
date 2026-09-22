@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Plus, Search, Loader2, AlertCircle, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { Plus, Search, Loader2, AlertCircle, ChevronLeft, ChevronRight, Activity, Calendar } from 'lucide-react';
 import { therapyApi } from '../../services/therapy';
 import type { TherapyCase, TherapyFilters } from '../../types/therapy';
 import { useAuth } from '../../auth/AuthContext';
@@ -10,6 +10,18 @@ const STATUS_BADGE: Record<string, string> = {
   COMPLETED: 'badge-success',
   DISCONTINUED: 'badge-gray',
 };
+
+function formatDaySlots(c: TherapyCase): string | null {
+  const slots: string[] = c.daySlots || (
+    Array.isArray(c.goals)
+      ? (c.goals.every((g) => typeof g === 'string') ? (c.goals as string[]) : [])
+      : (c.goals as any)?.daySlots || []
+  );
+  if (!slots || slots.length === 0) return null;
+  const shortNames = slots.map((s) => s.replace(/^Every\s+/i, '').substring(0, 3));
+  const time = c.timeSlot || (c.goals as any)?.timeSlot;
+  return `Every ${shortNames.join(', ')}${time ? ` · ${time}` : ''}`;
+}
 
 export function TherapyCasesListPage() {
   const { user } = useAuth();
@@ -117,7 +129,18 @@ export function TherapyCasesListPage() {
                     <p className="font-medium">{c.patient?.name}</p>
                     <p className="text-sm text-gray-500 font-mono">{c.patient?.patientNumber}</p>
                   </td>
-                  <td className="px-4 py-4">{c.title}</td>
+                  <td className="px-4 py-4">
+                    <p className="font-medium text-gray-900">{c.title}</p>
+                    {c.assessment && (
+                      <p className="text-xs text-gray-500 truncate max-w-xs">{c.assessment}</p>
+                    )}
+                    {formatDaySlots(c) && (
+                      <p className="text-xs text-blue-700 flex items-center gap-1 mt-1 font-medium bg-blue-50/90 px-2 py-0.5 rounded border border-blue-100 w-fit">
+                        <Calendar className="w-3 h-3 text-blue-500 shrink-0" />
+                        <span>{formatDaySlots(c)}</span>
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-4 text-sm">{c.therapist?.name}</td>
                   <td className="px-4 py-4 text-sm">{c._count?.sessions ?? 0}</td>
                   <td className="px-4 py-4"><span className={STATUS_BADGE[c.status]}>{c.status}</span></td>

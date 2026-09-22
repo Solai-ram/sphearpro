@@ -8,6 +8,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/prisma-exception.filter';
 
 /** Load env from apps/api and repo root (cwd alone is unreliable when started as dist/main.js). */
 function loadEnvFiles() {
@@ -109,10 +110,12 @@ async function bootstrap() {
     defaultVersion: '1',
   });
 
+  app.useGlobalFilters(new AllExceptionsFilter());
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),

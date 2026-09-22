@@ -16,6 +16,12 @@ export type PatientSearchHit = {
   name: string;
   patientNumber: string;
   phone?: string;
+  alternatePhone?: string;
+  email?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  address?: Record<string, any>;
+  emergencyContact?: Record<string, any>;
   opCases?: { id: string; createdAt: string; chiefComplaint?: string | null; status?: string }[];
 };
 

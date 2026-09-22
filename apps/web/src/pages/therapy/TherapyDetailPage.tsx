@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Plus, Mic, Square } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Plus, Mic, Square, Calendar, Clock, Stethoscope } from 'lucide-react';
 import { therapyApi } from '../../services/therapy';
 import type { TherapyCase, TherapyPackage, AttendanceStatus, TherapyNote } from '../../types/therapy';
 import { useAuth } from '../../auth/AuthContext';
@@ -218,6 +218,17 @@ export function TherapyDetailPage() {
 
   const pending = therapyCase.pendingDoctorNotes || [];
 
+  const doctorNames = useMemo(() => {
+    if (!therapyCase) return [];
+    const set = new Set<string>();
+    if (therapyCase.therapist?.name) set.add(therapyCase.therapist.name);
+    (therapyCase.sessions || []).forEach((s) => {
+      if (s.doctor?.name) set.add(s.doctor.name);
+      if (s.therapist?.name) set.add(s.therapist.name);
+    });
+    return Array.from(set).map(doctorLabel);
+  }, [therapyCase]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -227,7 +238,8 @@ export function TherapyDetailPage() {
             <h1 className="text-2xl font-bold">{therapyCase.title}</h1>
             <p className="text-gray-500">
               <Link to={`/patients/${therapyCase.patientId}`} className="text-blue-600">{therapyCase.patient?.name}</Link>
-              {' · '}{therapyCase.therapist?.name}
+              {' · '}
+              {doctorNames.length > 0 ? doctorNames.join(', ') : (therapyCase.therapist?.name ? doctorLabel(therapyCase.therapist.name) : 'Doctor')}
             </p>
           </div>
         </div>
@@ -237,12 +249,57 @@ export function TherapyDetailPage() {
       {error && <div className="p-4 rounded-lg bg-red-50 text-red-700 flex gap-2"><AlertCircle className="w-5 h-5 shrink-0" />{error}</div>}
       {message && <div className="p-4 rounded-lg bg-emerald-50 text-emerald-800 text-sm">{message}</div>}
 
-      {therapyCase.assessment && (
-        <div className="card p-4">
-          <h2 className="font-semibold mb-2">Assessment</h2>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{therapyCase.assessment}</p>
-        </div>
-      )}
+      {(() => {
+        const daySlotsList: string[] = therapyCase.daySlots || (
+          Array.isArray(therapyCase.goals)
+            ? (therapyCase.goals.every((g) => typeof g === 'string') ? (therapyCase.goals as string[]) : [])
+            : (therapyCase.goals as any)?.daySlots || []
+        );
+        const timeSlotStr = therapyCase.timeSlot || (therapyCase.goals as any)?.timeSlot || '';
+
+        if (!therapyCase.assessment && daySlotsList.length === 0) return null;
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {therapyCase.assessment && (
+              <div className="card p-4">
+                <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-blue-600" />
+                  Provisional diagnosis
+                </h2>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
+                  {therapyCase.assessment}
+                </p>
+              </div>
+            )}
+
+            {daySlotsList.length > 0 && (
+              <div className="card p-4 bg-gradient-to-br from-blue-50/60 to-indigo-50/40 border-blue-200">
+                <h2 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  Day slots (Recurring schedule)
+                </h2>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {daySlotsList.map((slot: string) => (
+                    <span
+                      key={slot}
+                      className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200"
+                    >
+                      {slot}
+                    </span>
+                  ))}
+                  {timeSlotStr && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-indigo-600" />
+                      {timeSlotStr}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="flex gap-2 border-b">
         {tabs.map((t) => (

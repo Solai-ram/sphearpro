@@ -8,7 +8,6 @@ import {
   CreateBucketCommand,
   HeadBucketCommand,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AuditService } from '../audit/audit.service';
 import { DEFAULT_CLINIC_ID } from '../../common/tenant/clinic-context';
 
@@ -211,24 +210,40 @@ export class SettingsService {
     await this.ensureDefaults(clinicId);
     const s3Key = await this.readSettingValue(clinicId, 'clinic.logoS3Key');
     if (!s3Key) {
-      return { url: null as string | null, fileName: '', mimeType: '' };
+      return { url: null as string | null, fileName: '', mimeType: '', hasLogo: false };
     }
     const fileName = await this.readSettingValue(clinicId, 'clinic.logoFileName');
     const mimeType = await this.readSettingValue(clinicId, 'clinic.logoMimeType');
+
+    // Return the API proxy URL — this always works regardless of S3 accessibility from the browser.
+    const proxyUrl = `/api/v1/settings/logo/image`;
+
+    return { url: proxyUrl, fileName, mimeType, hasLogo: true };
+  }
+
+  /** Download logo bytes from S3 for the proxy endpoint. */
+  async getLogoBytes(clinicId: string): Promise<{ buffer: Buffer; mimeType: string } | null> {
+    await this.ensureDefaults(clinicId);
+    const s3Key = await this.readSettingValue(clinicId, 'clinic.logoS3Key');
+    if (!s3Key) return null;
+    const mimeType = await this.readSettingValue(clinicId, 'clinic.logoMimeType') || 'image/png';
     try {
-      const command = new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: s3Key,
-        ResponseContentType: mimeType || undefined,
-        ResponseContentDisposition: 'inline',
+      const command = new GetObjectCommand({ Bucket: this.bucket, Key: s3Key });
+      const response = await this.s3Client.send(command);
+      const chunks: Buffer[] = [];
+      const stream = response.Body as NodeJS.ReadableStream;
+      await new Promise<void>((resolve, reject) => {
+        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+        stream.on('end', resolve);
+        stream.on('error', reject);
       });
-      const url = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
-      return { url, fileName, mimeType };
+      return { buffer: Buffer.concat(chunks), mimeType };
     } catch (err) {
-      this.logger.warn(`Failed to get signed logo URL: ${err instanceof Error ? err.message : err}`);
-      return { url: null as string | null, fileName, mimeType };
+      this.logger.warn(`getLogoBytes failed: ${err instanceof Error ? err.message : err}`);
+      return null;
     }
   }
+
 
   async uploadLogo(
     clinicId: string,

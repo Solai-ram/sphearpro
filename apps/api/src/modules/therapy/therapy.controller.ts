@@ -432,9 +432,12 @@ export class TherapyController {
     @Body() body: {
       patientId: string;
       therapistId: string;
+      doctorIds?: string[];
       title: string;
       assessment?: string;
       goals?: unknown;
+      daySlots?: string[];
+      timeSlot?: string;
       opCaseId?: string;
     },
     @CurrentUser() user: { sub?: string; clinicId?: string },
@@ -481,7 +484,7 @@ export class TherapyController {
   @ApiOperation({ summary: 'Assign catalog package and generate sessions' })
   async assignPackage(
     @Param('id') id: string,
-    @Body() body: { packageId: string; startDate?: string },
+    @Body() body: { packageId: string; startDate?: string; doctorIds?: string[] },
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
     return this.therapyService.assignPackage(id, requireClinicId(user), {
