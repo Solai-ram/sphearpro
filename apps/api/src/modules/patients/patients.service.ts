@@ -143,30 +143,81 @@ export class PatientsService {
       if (existing) throw new ConflictException('Email already registered');
     }
 
-    const patientNumber = await nextDocumentNumber(this.prisma, data.clinicId, 'patient', async (stem) => {
-      const last = await this.prisma.patient.findFirst({
-        where: { clinicId: data.clinicId, patientNumber: { startsWith: stem } },
-        orderBy: { patientNumber: 'desc' },
-        select: { patientNumber: true },
-      });
-      return last?.patientNumber;
-    });
+    const generatePatientNumber = async (): Promise<string> => {
+      return nextDocumentNumber(
+        this.prisma,
+        data.clinicId,
+        'patient',
+        async (stem) => {
+          try {
+            const escapedStem = stem.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const rows = await (this.prisma as any).$queryRawUnsafe(
+              `SELECT "patientNumber" FROM "patients" WHERE "clinicId" = $1 AND "patientNumber" ~ $2 ORDER BY length("patientNumber") DESC, "patientNumber" DESC LIMIT 1`,
+              data.clinicId,
+              `^${escapedStem}[0-9]+$`,
+            );
+            if (Array.isArray(rows) && rows.length > 0 && rows[0]?.patientNumber) {
+              return rows[0].patientNumber;
+            }
+          } catch {
+            // Fallback if raw query is not supported in environment
+          }
+          const last = await this.prisma.patient.findFirst({
+            where: { clinicId: data.clinicId, patientNumber: { startsWith: stem } },
+            orderBy: { patientNumber: 'desc' },
+            select: { patientNumber: true },
+          });
+          return last?.patientNumber;
+        },
+        async (candidate) => {
+          const exists = await this.prisma.patient.findFirst({
+            where: { clinicId: data.clinicId, patientNumber: candidate },
+            select: { id: true },
+          });
+          return !!exists;
+        },
+      );
+    };
 
-    const patient = await this.prisma.patient.create({
-      data: {
-        clinicId: data.clinicId,
-        patientNumber,
-        name: data.name,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-        gender: data.gender as any,
-        phone: data.phone,
-        alternatePhone: data.alternatePhone,
-        email: data.email,
-        address: data.address,
-        emergencyContact: data.emergencyContact,
-        createdBy: data.createdBy,
-      },
-    });
+    let patient: any = null;
+    const maxAttempts = 5;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const patientNumber = await generatePatientNumber();
+      try {
+        patient = await this.prisma.patient.create({
+          data: {
+            clinicId: data.clinicId,
+            patientNumber,
+            name: data.name,
+            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+            gender: data.gender as any,
+            phone: data.phone,
+            alternatePhone: data.alternatePhone,
+            email: data.email,
+            address: data.address,
+            emergencyContact: data.emergencyContact,
+            createdBy: data.createdBy,
+          },
+        });
+        break;
+      } catch (err: any) {
+        const isCollision =
+          err?.code === 'P2002' &&
+          (Array.isArray(err?.meta?.target)
+            ? err.meta.target.includes('patientNumber')
+            : String(err?.message || '').includes('patientNumber'));
+
+        if (isCollision && attempt < maxAttempts) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!patient) {
+      throw new ConflictException('Failed to generate a unique patient number. Please try again.');
+    }
 
     await this.auditService.log({
       actorId: data.createdBy,

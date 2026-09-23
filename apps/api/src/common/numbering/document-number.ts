@@ -33,7 +33,8 @@ function asBool(value: unknown, fallback: boolean): boolean {
 }
 
 function asInt(value: unknown, fallback: number, min: number, max: number): number {
-  const n = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+  if (value == null || value === '') return fallback;
+  const n = typeof value === 'number' ? value : Number(String(value).trim());
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
 }
@@ -99,10 +100,13 @@ export function formatDocumentNumber(
 }
 
 export function parseSequenceFromNumber(number: string, stem: string): number {
+  if (!number || !stem) return 0;
   if (!number.toUpperCase().startsWith(stem.toUpperCase())) return 0;
   const rest = number.slice(stem.length);
-  const n = parseInt(rest, 10);
-  return Number.isFinite(n) ? n : 0;
+  const match = rest.match(/^\d+/);
+  if (!match) return 0;
+  const n = parseInt(match[0], 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 type SettingRow = { key: string; value: unknown };
@@ -175,6 +179,7 @@ export async function nextDocumentNumber(
   clinicId: string,
   kind: 'patient' | 'invoice',
   findLast: (stem: string) => Promise<string | null | undefined>,
+  checkExists?: (candidate: string) => Promise<boolean>,
 ): Promise<string> {
   const cfg =
     kind === 'patient'
@@ -183,6 +188,15 @@ export async function nextDocumentNumber(
   const year = new Date().getFullYear();
   const stem = documentNumberStem(cfg, year);
   const last = await findLast(stem);
-  const seq = last ? parseSequenceFromNumber(last, stem) + 1 : 1;
-  return formatDocumentNumber(cfg, seq, year);
+  let seq = last ? parseSequenceFromNumber(last, stem) + 1 : 1;
+  let candidate = formatDocumentNumber(cfg, seq, year);
+
+  if (checkExists) {
+    while (await checkExists(candidate)) {
+      seq++;
+      candidate = formatDocumentNumber(cfg, seq, year);
+    }
+  }
+
+  return candidate;
 }

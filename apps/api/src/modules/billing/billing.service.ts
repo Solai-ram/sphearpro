@@ -3,6 +3,7 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
@@ -96,25 +97,49 @@ export class BillingService {
     const taxTotal = roundMoney(normalized.reduce((sum, item) => sum + item.tax, 0));
     const grandTotal = roundMoney(normalized.reduce((sum, item) => sum + item.lineTotal, 0));
 
-    const invoiceNumber = await this.nextInvoiceNumber(data.clinicId);
     const dueDate = data.dueDate ? new Date(data.dueDate) : addDays(new Date(), 14);
 
-    const invoice = await this.prisma.invoice.create({
-      data: {
-        clinicId: data.clinicId,
-        patientId: data.patientId,
-        invoiceNumber,
-        dueDate,
-        status: grandTotal <= 0 ? 'PAID' : 'PENDING',
-        subtotal,
-        discountTotal,
-        taxTotal,
-        grandTotal,
-        notes: data.notes,
-        items: { create: normalized },
-      },
-      include: this.invoiceInclude(),
-    });
+    let invoice: any = null;
+    let invoiceNumber = '';
+    const maxAttempts = 5;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      invoiceNumber = await this.nextInvoiceNumber(data.clinicId);
+      try {
+        invoice = await this.prisma.invoice.create({
+          data: {
+            clinicId: data.clinicId,
+            patientId: data.patientId,
+            invoiceNumber,
+            dueDate,
+            status: grandTotal <= 0 ? 'PAID' : 'PENDING',
+            subtotal,
+            discountTotal,
+            taxTotal,
+            grandTotal,
+            notes: data.notes,
+            items: { create: normalized },
+          },
+          include: this.invoiceInclude(),
+        });
+        break;
+      } catch (err: any) {
+        const isCollision =
+          err?.code === 'P2002' &&
+          (Array.isArray(err?.meta?.target)
+            ? err.meta.target.includes('invoiceNumber')
+            : String(err?.message || '').includes('invoiceNumber'));
+
+        if (isCollision && attempt < maxAttempts) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!invoice) {
+      throw new ConflictException('Failed to generate a unique invoice number. Please try again.');
+    }
 
     await this.auditService.log({
       clinicId: data.clinicId,
@@ -830,14 +855,39 @@ export class BillingService {
   }
 
   private async nextInvoiceNumber(clinicId: string): Promise<string> {
-    return nextDocumentNumber(this.prisma, clinicId, 'invoice', async (stem) => {
-      const last = await this.prisma.invoice.findFirst({
-        where: { clinicId, invoiceNumber: { startsWith: stem } },
-        orderBy: { invoiceNumber: 'desc' },
-        select: { invoiceNumber: true },
-      });
-      return last?.invoiceNumber;
-    });
+    return nextDocumentNumber(
+      this.prisma,
+      clinicId,
+      'invoice',
+      async (stem) => {
+        try {
+          const escapedStem = stem.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const rows = await (this.prisma as any).$queryRawUnsafe(
+            `SELECT "invoiceNumber" FROM "invoices" WHERE "clinicId" = $1 AND "invoiceNumber" ~ $2 ORDER BY length("invoiceNumber") DESC, "invoiceNumber" DESC LIMIT 1`,
+            clinicId,
+            `^${escapedStem}[0-9]+$`,
+          );
+          if (Array.isArray(rows) && rows.length > 0 && rows[0]?.invoiceNumber) {
+            return rows[0].invoiceNumber;
+          }
+        } catch {
+          // Fallback if raw query is not supported
+        }
+        const last = await this.prisma.invoice.findFirst({
+          where: { clinicId, invoiceNumber: { startsWith: stem } },
+          orderBy: { invoiceNumber: 'desc' },
+          select: { invoiceNumber: true },
+        });
+        return last?.invoiceNumber;
+      },
+      async (candidate) => {
+        const exists = await this.prisma.invoice.findFirst({
+          where: { clinicId, invoiceNumber: candidate },
+          select: { id: true },
+        });
+        return !!exists;
+      },
+    );
   }
 
   private async addTimelineEvent(data: {

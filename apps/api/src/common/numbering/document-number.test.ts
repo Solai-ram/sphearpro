@@ -52,4 +52,30 @@ describe('document-number', () => {
     ]);
     expect(formatDocumentNumber(invoice, 9)).toBe('BILL00009');
   });
+
+  it('safely handles non-digit suffixes or non-numeric sequences', () => {
+    expect(parseSequenceFromNumber('P000015-XYZ', 'P')).toBe(15);
+    expect(parseSequenceFromNumber('PATIENT-1', 'P')).toBe(0);
+    expect(parseSequenceFromNumber('P-001', 'P')).toBe(0);
+  });
+
+  it('advances sequence past already existing numbers using checkExists', async () => {
+    const mockPrisma = {
+      setting: {
+        findMany: async () => [],
+      },
+    };
+    const existing = new Set(['P000001', 'P000002']);
+    const num = await import('./document-number').then((m) =>
+      m.nextDocumentNumber(
+        mockPrisma,
+        'clinic-1',
+        'patient',
+        async () => 'P000001',
+        async (candidate) => existing.has(candidate),
+      ),
+    );
+    expect(num).toBe('P000003');
+  });
 });
+

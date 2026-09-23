@@ -9,7 +9,9 @@ import { ageFromDob, dobFromAgeYears, formatAddress } from '../../lib/age';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  age: z.string().trim().min(1, 'Age is required').pipe(z.coerce.number().int().min(0).max(120)),
+  age: z
+    .union([z.string().trim().min(1, 'Age is required'), z.number({ required_error: 'Age is required' })])
+    .pipe(z.coerce.number().int().min(0).max(120)),
   gender: z.string().min(1, 'Gender is required').pipe(z.enum(['MALE', 'FEMALE', 'OTHER'])),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),

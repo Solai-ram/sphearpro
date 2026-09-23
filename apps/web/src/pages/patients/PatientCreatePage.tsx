@@ -42,8 +42,20 @@ function patientSchema(forOp: boolean) {
     name: z.string().min(2, 'Name must be at least 2 characters'),
     dateOfBirth: z.string().optional(),
     age: forOp
-      ? requiredText('Age is required').pipe(z.coerce.number().int().min(0, 'Age must be 0 or more').max(120, 'Age must be 120 or less'))
-      : z.union([z.literal(''), z.coerce.number().int().min(0).max(120)]).optional(),
+      ? z
+          .union([
+            z.string().trim().min(1, 'Age is required'),
+            z.number({ required_error: 'Age is required' }),
+          ])
+          .pipe(z.coerce.number().int().min(0, 'Age must be 0 or more').max(120, 'Age must be 120 or less'))
+      : z
+          .union([
+            z.literal(''),
+            z.string(),
+            z.number(),
+          ])
+          .optional()
+          .transform((v) => (v === '' || v === undefined || v === null ? undefined : Number(v))),
     gender: forOp
       ? requiredText('Gender is required').pipe(z.enum(['MALE', 'FEMALE', 'OTHER']))
       : z.enum(['MALE', 'FEMALE', 'OTHER', 'UNKNOWN']).optional(),
@@ -209,12 +221,12 @@ export function PatientCreatePage() {
         ? { line: (data.address as { line?: string }).line }
         : data.address;
       const addressValues = Object.values(address || {}).filter(Boolean);
-      const ageValue = typeof data.age === 'number' ? data.age : undefined;
+      const ageValue = typeof data.age === 'number' ? data.age : (data.age ? Number(data.age) : undefined);
       const payload = {
         name: data.name,
-        dateOfBirth: forOp
-          ? (ageValue != null ? dobFromAgeYears(ageValue) : undefined)
-          : data.dateOfBirth || undefined,
+        dateOfBirth: data.dateOfBirth
+          ? data.dateOfBirth
+          : (ageValue != null ? dobFromAgeYears(ageValue) : undefined),
         gender: data.gender,
         phone: data.phone || undefined,
         alternatePhone: data.alternatePhone || undefined,
@@ -338,7 +350,7 @@ export function PatientCreatePage() {
                     placeholder="e.g. 45"
                     onChange={(e) => {
                       const val = e.target.value;
-                      setValue('age', val as any);
+                      setValue('age', val as any, { shouldValidate: true });
                       const num = Number(val);
                       if (!isNaN(num) && num >= 0 && num <= 120) {
                         const d = new Date();
@@ -403,7 +415,7 @@ export function PatientCreatePage() {
                         let a = today.getFullYear() - birth.getFullYear();
                         const m = today.getMonth() - birth.getMonth();
                         if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
-                        if (a >= 0 && a <= 120) setValue('age', a);
+                        if (a >= 0 && a <= 120) setValue('age', String(a), { shouldValidate: true });
                       }
                     }}
                   />
