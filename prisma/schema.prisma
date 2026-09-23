@@ -265,11 +265,11 @@ model Patient {
   patientPackages   PatientPackage[]
 
   @@unique([clinicId, patientNumber])
-  @@unique([clinicId, phone])
   @@unique([clinicId, email])
   @@index([clinicId])
   @@index([name])
   @@index([phone])
+  @@index([clinicId, phone])
   @@map("patients")
 }
 

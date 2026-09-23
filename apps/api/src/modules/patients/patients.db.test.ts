@@ -43,20 +43,21 @@ describeDb('PatientsService (database)', () => {
     expect(logs).toHaveLength(2);
   });
 
-  it('rejects duplicate phone in the same clinic', async () => {
+  it('allows duplicate phone in the same clinic (e.g. for family members)', async () => {
     if (!prisma) return;
     const tenant = await createTestTenant(prisma);
-    await patients.create({
+    const p1 = await patients.create({
       clinicId: tenant.clinic.id,
       name: 'Ada',
       phone: '9990001111',
     });
-    await expect(
-      patients.create({
-        clinicId: tenant.clinic.id,
-        name: 'Ada 2',
-        phone: '9990001111',
-      }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    const p2 = await patients.create({
+      clinicId: tenant.clinic.id,
+      name: 'Ada 2',
+      phone: '9990001111',
+    });
+    expect(p1.id).toBeDefined();
+    expect(p2.id).toBeDefined();
+    expect(p1.phone).toBe(p2.phone);
   });
 });

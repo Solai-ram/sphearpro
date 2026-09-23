@@ -130,12 +130,6 @@ export class PatientsService {
     createdBy?: string;
     clinicId: string;
   }) {
-    if (data.phone) {
-      const existing = await this.prisma.patient.findFirst({
-        where: { clinicId: data.clinicId, phone: data.phone, deletedAt: null },
-      });
-      if (existing) throw new ConflictException('Phone number already registered');
-    }
     if (data.email) {
       const existing = await this.prisma.patient.findFirst({
         where: { clinicId: data.clinicId, email: data.email, deletedAt: null },
@@ -255,12 +249,6 @@ export class PatientsService {
     const patient = await this.prisma.patient.findFirst({ where: { id, clinicId } });
     if (!patient || patient.deletedAt) throw new NotFoundException('Patient not found');
 
-    if (data.phone && data.phone !== patient.phone) {
-      const existing = await this.prisma.patient.findFirst({
-        where: { clinicId, phone: data.phone, deletedAt: null, NOT: { id } },
-      });
-      if (existing) throw new ConflictException('Phone number already registered');
-    }
     if (data.email && data.email !== patient.email) {
       const existing = await this.prisma.patient.findFirst({
         where: { clinicId, email: data.email, deletedAt: null, NOT: { id } },
