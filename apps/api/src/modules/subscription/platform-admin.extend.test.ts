@@ -63,4 +63,32 @@ describe('Phase 12 — platform admin extend / suspend', () => {
     );
     expect(result.status).toBe('ACTIVE');
   });
+
+  it('manual extend works with default reason if undefined', async () => {
+    const result = await svc.extend('sub_1', 'actor_1', { days: 30 });
+    expect(sub.status).toBe('ACTIVE');
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'PLATFORM_SUBSCRIPTION_EXTEND',
+        metadata: expect.objectContaining({ days: 30 }),
+      }),
+    );
+    expect(result.status).toBe('ACTIVE');
+  });
+
+  it('grantGracePeriod sets status to GRACE_PERIOD and gracePeriodEnd', async () => {
+    const result = await svc.grantGracePeriod('sub_1', 'actor_1', {
+      days: 7,
+      reason: 'payment retry',
+    });
+    expect(sub.status).toBe('GRACE_PERIOD');
+    expect(sub.gracePeriodEnd).toBeInstanceOf(Date);
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'PLATFORM_SUBSCRIPTION_GRACE_PERIOD',
+        clinicId: 'clinic_a',
+      }),
+    );
+    expect(result.status).toBe('GRACE_PERIOD');
+  });
 });

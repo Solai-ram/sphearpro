@@ -322,11 +322,12 @@ export class PlatformAdminService {
   async extend(
     id: string,
     actorId: string,
-    body: { days: number; reason: string },
+    body: { days: number; reason?: string },
   ) {
-    if (!body?.reason?.trim()) {
+    if (body?.reason !== undefined && !body.reason.trim()) {
       throw new BadRequestException('reason is required');
     }
+    const reason = body?.reason?.trim() || 'Platform validity extension';
     const days = Number(body.days);
     if (!Number.isFinite(days) || days < 1 || days > 3650) {
       throw new BadRequestException('days must be between 1 and 3650');
@@ -342,13 +343,15 @@ export class PlatformAdminService {
       const data: Prisma.SubscriptionUpdateInput = {
         currentPeriodEnd: periodEnd,
       };
-      // If expired/suspended, bring back to ACTIVE for the extension window
-      if (['EXPIRED', 'SUSPENDED', 'CANCELLED'].includes(sub.status)) {
+      // If expired/suspended/grace/past_due, bring back to ACTIVE for the extension window
+      if (['EXPIRED', 'SUSPENDED', 'CANCELLED', 'GRACE_PERIOD', 'PAST_DUE', 'PAYMENT_FAILED'].includes(sub.status)) {
         assertTransition(sub.status, 'ACTIVE');
         data.status = 'ACTIVE';
         data.endedAt = null;
         data.cancelledAt = null;
         data.cancelAtPeriodEnd = false;
+        data.gracePeriodStart = null;
+        data.gracePeriodEnd = null;
       }
       await tx.subscription.update({ where: { id }, data });
       await tx.subscriptionEvent.create({
@@ -358,10 +361,12 @@ export class PlatformAdminService {
           eventType: 'SUBSCRIPTION_EXTENDED',
           oldStatus: sub.status,
           newStatus:
-            ['EXPIRED', 'SUSPENDED', 'CANCELLED'].includes(sub.status) ? 'ACTIVE' : sub.status,
+            ['EXPIRED', 'SUSPENDED', 'CANCELLED', 'GRACE_PERIOD', 'PAST_DUE', 'PAYMENT_FAILED'].includes(sub.status)
+              ? 'ACTIVE'
+              : sub.status,
           metadata: {
             actorId,
-            reason: body.reason.trim(),
+            reason,
             days,
             newPeriodEnd: periodEnd.toISOString(),
             source: 'platform',
@@ -378,7 +383,73 @@ export class PlatformAdminService {
       entityType: 'Subscription',
       entityId: id,
       result: 'SUCCESS',
-      metadata: { days, reason: body.reason.trim() },
+      metadata: { days, reason },
+    });
+    return this.getSubscription(id);
+  }
+
+  async grantGracePeriod(
+    id: string,
+    actorId: string,
+    body?: { days?: number; reason?: string },
+  ) {
+    if (body?.reason !== undefined && !body.reason.trim()) {
+      throw new BadRequestException('reason cannot be empty if specified');
+    }
+    const days = Number(body?.days ?? 7);
+    if (!Number.isFinite(days) || days < 1 || days > 90) {
+      throw new BadRequestException('days must be between 1 and 90');
+    }
+    const reason = body?.reason?.trim() || 'Platform grace period granted';
+
+    const sub = await this.requireSub(id);
+    const now = new Date();
+    const base =
+      sub.gracePeriodEnd && sub.gracePeriodEnd > now ? sub.gracePeriodEnd : now;
+    const graceEnd = addDays(base, days);
+
+    await this.prisma.$transaction(async (tx) => {
+      if (!['EXPIRED', 'SUSPENDED', 'CANCELLED'].includes(sub.status)) {
+        assertTransition(sub.status, 'GRACE_PERIOD');
+      }
+      await tx.subscription.update({
+        where: { id },
+        data: {
+          status: 'GRACE_PERIOD',
+          gracePeriodStart: sub.gracePeriodStart || now,
+          gracePeriodEnd: graceEnd,
+          endedAt: null,
+          cancelledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+      await tx.subscriptionEvent.create({
+        data: {
+          subscriptionId: id,
+          clinicId: sub.clinicId,
+          eventType: SUBSCRIPTION_EVENT.GRACE_PERIOD,
+          oldStatus: sub.status,
+          newStatus: 'GRACE_PERIOD',
+          metadata: {
+            actorId,
+            reason,
+            days,
+            gracePeriodEnd: graceEnd.toISOString(),
+            source: 'platform',
+          },
+        },
+      });
+    });
+
+    await this.audit.log({
+      actorId,
+      actorType: 'user',
+      clinicId: sub.clinicId,
+      action: 'PLATFORM_SUBSCRIPTION_GRACE_PERIOD',
+      entityType: 'Subscription',
+      entityId: id,
+      result: 'SUCCESS',
+      metadata: { days, reason, gracePeriodEnd: graceEnd.toISOString() },
     });
     return this.getSubscription(id);
   }
