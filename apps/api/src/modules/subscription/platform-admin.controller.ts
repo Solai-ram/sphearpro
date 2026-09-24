@@ -103,14 +103,24 @@ export class PlatformAdminController {
 
   @Post('subscriptions/:id/extend')
   @PlatformAdmin()
-  @ApiOperation({ summary: 'Extend subscription period (reason required)' })
+  @ApiOperation({ summary: 'Extend subscription period / increase validity' })
   extend(
     @Param('id') id: string,
     @CurrentUser() user: { sub?: string },
-    @Body() body: { days: number; reason: string },
+    @Body() body: { days: number; reason?: string },
   ) {
-    if (!body?.reason) throw new BadRequestException('reason is required');
     return this.platform.extend(id, user.sub!, body);
+  }
+
+  @Post('subscriptions/:id/grace-period')
+  @PlatformAdmin()
+  @ApiOperation({ summary: 'Grant or extend clinic grace period' })
+  grantGracePeriod(
+    @Param('id') id: string,
+    @CurrentUser() user: { sub?: string },
+    @Body() body: { days?: number; reason?: string },
+  ) {
+    return this.platform.grantGracePeriod(id, user.sub!, body);
   }
 
   @Post('subscriptions/:id/offline-payment')
