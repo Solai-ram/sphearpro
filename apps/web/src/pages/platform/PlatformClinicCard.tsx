@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Building2,
   Calendar,
+  Clock,
   Copy,
   CreditCard,
   Eye,
@@ -18,6 +19,7 @@ import { formatDate, formatPaise, statusLabel } from '../subscription/types';
 import { ClinicStorageMiniChart } from './PlatformCharts';
 import { fetchApi, setAccessToken } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import { PlatformValidityModal } from './PlatformValidityModal';
 
 export type PlatformClinicCardData = {
   id: string;
@@ -26,6 +28,8 @@ export type PlatformClinicCardData = {
   currency: string;
   billingInterval?: string;
   currentPeriodEnd?: string | null;
+  gracePeriodStart?: string | null;
+  gracePeriodEnd?: string | null;
   cancelAtPeriodEnd?: boolean;
   clinic: {
     id: string;
@@ -87,13 +91,32 @@ async function copyText(value: string) {
   }
 }
 
-export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
+export function PlatformClinicCard({
+  row,
+  onRefresh,
+}: {
+  row: PlatformClinicCardData;
+  onRefresh?: () => void;
+}) {
   const navigate = useNavigate();
   const { refresh } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [copied, setCopied] = useState<'email' | 'password' | null>(null);
+  const [showValidityModal, setShowValidityModal] = useState(false);
+  const [status, setStatus] = useState(row.status);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState(row.currentPeriodEnd);
+  const [gracePeriodEnd, setGracePeriodEnd] = useState(row.gracePeriodEnd);
+
+  const handleValiditySuccess = (updatedSub?: any) => {
+    if (updatedSub) {
+      if (updatedSub.status) setStatus(updatedSub.status);
+      if (updatedSub.currentPeriodEnd) setCurrentPeriodEnd(updatedSub.currentPeriodEnd);
+      if (updatedSub.gracePeriodEnd !== undefined) setGracePeriodEnd(updatedSub.gracePeriodEnd);
+    }
+    if (onRefresh) onRefresh();
+  };
 
   const interval =
     row.billingInterval === 'YEARLY' ? 'yearly' : row.billingInterval === 'MONTHLY' ? 'monthly' : null;
@@ -144,10 +167,10 @@ export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
         </Link>
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 ${platformStatusTone(
-            row.status,
+            status,
           )}`}
         >
-          {statusLabel(row.status)}
+          {statusLabel(status)}
         </span>
       </div>
 
@@ -175,8 +198,28 @@ export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
             <Calendar className="h-3.5 w-3.5" />
             Period end
           </span>
-          <span className="font-medium text-slate-100">{formatDate(row.currentPeriodEnd)}</span>
+          <span className="font-medium text-slate-100">{formatDate(currentPeriodEnd)}</span>
         </div>
+        {gracePeriodEnd ? (
+          <div className="flex items-center justify-between gap-2 text-amber-300">
+            <span className="inline-flex items-center gap-1.5 text-amber-400/90">
+              <Clock className="h-3.5 w-3.5" />
+              Grace ends
+            </span>
+            <span className="font-medium text-amber-300">{formatDate(gracePeriodEnd)}</span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={() => setShowValidityModal(true)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/60 px-3 py-2 text-xs font-semibold text-sky-300 hover:border-sky-500/50 hover:bg-sky-500/10 hover:text-sky-200 transition"
+        >
+          <Clock className="h-3.5 w-3.5 text-sky-400" />
+          Extend Validity / Grace Period
+        </button>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-800 pt-4">
@@ -299,6 +342,17 @@ export function PlatformClinicCard({ row }: { row: PlatformClinicCardData }) {
       {row.cancelAtPeriodEnd && (
         <p className="mt-2 text-xs font-medium text-amber-300">Cancels at period end</p>
       )}
+
+      <PlatformValidityModal
+        isOpen={showValidityModal}
+        onClose={() => setShowValidityModal(false)}
+        subscriptionId={row.id}
+        clinicName={row.clinic.name}
+        currentPeriodEnd={currentPeriodEnd}
+        gracePeriodEnd={gracePeriodEnd}
+        status={status}
+        onSuccess={handleValiditySuccess}
+      />
     </article>
   );
 }
