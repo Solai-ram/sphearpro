@@ -43,7 +43,6 @@ import { InventorySalesReportPage } from './pages/inventory/InventorySalesReport
 import { InventoryStockEntryPage } from './pages/inventory/InventoryStockEntryPage';
 import { InventoryReturnRequestsPage } from './pages/inventory/InventoryReturnRequestsPage';
 import { InventoryReturnsReportPage } from './pages/inventory/InventoryReturnsReportPage';
-import { InventorySuppliersPage } from './pages/inventory/InventorySuppliersPage';
 // WhatsApp communication disabled in v1
 // import { CommunicationPage } from './pages/communication/CommunicationPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
@@ -195,7 +194,7 @@ function App() {
         <Route path="/inventory/movements" element={<InventoryStockEntryPage />} />
         <Route path="/inventory/returns" element={<InventoryReturnRequestsPage />} />
         <Route path="/inventory/returns-report" element={<InventoryReturnsReportPage />} />
-        <Route path="/inventory/suppliers" element={<InventorySuppliersPage />} />
+        <Route path="/inventory/suppliers" element={<Navigate to="/inventory/items" replace />} />
         <Route path="/documents" element={<DocumentsPage />} />
         {/* WhatsApp communication disabled in v1 */}
         {/* <Route path="/communication" element={<CommunicationPage />} /> */}

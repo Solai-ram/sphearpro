@@ -36,6 +36,7 @@ export const inventoryApi = {
     lowStockThreshold: number;
     initialStock?: number;
     supplierId?: string;
+    supplier?: string;
     unitCost?: number;
     model?: string;
     serialNo?: string;
@@ -64,6 +65,8 @@ export const inventoryApi = {
     type: Exclude<StockTxnType, 'SALE' | 'RETURN'>;
     quantity: number;
     supplierId?: string;
+    supplierName?: string;
+    supplier?: string;
     unitCost?: number;
     note?: string;
   }): Promise<StockTransaction> {
