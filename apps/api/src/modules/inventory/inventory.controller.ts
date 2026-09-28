@@ -141,6 +141,7 @@ export class InventoryController {
       lowStockThreshold: number;
       initialStock?: number;
       supplierId?: string;
+      supplier?: string;
       unitCost?: number;
       model?: string;
       serialNo?: string;
@@ -182,6 +183,7 @@ export class InventoryController {
       serialNo?: string;
       warranty?: string;
       colour?: string;
+      supplier?: string;
     },
     @CurrentUser() user: { sub?: string; clinicId?: string },
   ) {
@@ -229,6 +231,8 @@ export class InventoryController {
       type: 'PURCHASE' | 'SALE' | 'RETURN' | 'DAMAGE' | 'ADJUSTMENT';
       quantity: number;
       supplierId?: string;
+      supplierName?: string;
+      supplier?: string;
       unitCost?: number;
       reference?: string;
       note?: string;

@@ -1023,6 +1023,7 @@ model Product {
   serialNo     String?
   warranty     String?
   colour       String?
+  supplier     String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -1098,6 +1099,7 @@ model StockTransaction {
   clinicId    String
   productId   String
   supplierId  String?
+  supplierName String?
   type        StockTxnType
   quantity    Int              // + for in, - for out
   balance     Int              // Running balance after transaction

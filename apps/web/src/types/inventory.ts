@@ -32,6 +32,7 @@ export interface Product {
   serialNo?: string | null;
   warranty?: string | null;
   colour?: string | null;
+  supplier?: string | null;
   category?: ProductCategory;
   transactions?: StockTransaction[];
 }
@@ -40,6 +41,7 @@ export interface StockTransaction {
   id: string;
   productId: string;
   supplierId?: string | null;
+  supplierName?: string | null;
   type: StockTxnType;
   quantity: number;
   balance: number;
