@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ClipboardList, Loader2, Package, Plus, ShoppingCart, Truck } from 'lucide-react';
+import { AlertCircle, ClipboardList, Loader2, Package, Plus, ShoppingCart } from 'lucide-react';
 import { inventoryApi } from '../../services/inventory';
 import type { Product } from '../../types/inventory';
 
@@ -60,12 +60,11 @@ export function InventoryOverviewPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Link to="/inventory/items" className="btn-primary justify-center"><Plus className="w-4 h-4 mr-1" /> Item master</Link>
         <Link to="/inventory/stock" className="btn-secondary justify-center"><ClipboardList className="w-4 h-4 mr-1" /> Stock report</Link>
         <Link to="/inventory/sales" className="btn-secondary justify-center"><ShoppingCart className="w-4 h-4 mr-1" /> Sales report</Link>
         <Link to="/inventory/movements" className="btn-secondary justify-center"><Package className="w-4 h-4 mr-1" /> Stock entry</Link>
-        <Link to="/inventory/suppliers" className="btn-secondary justify-center"><Truck className="w-4 h-4 mr-1" /> Suppliers</Link>
       </div>
 
       {lowStock.length > 0 && (

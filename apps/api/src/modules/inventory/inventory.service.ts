@@ -222,6 +222,7 @@ export class InventoryService {
       lowStockThreshold: number;
       initialStock?: number;
       supplierId?: string;
+      supplier?: string;
       unitCost?: number;
       model?: string;
       serialNo?: string;
@@ -260,6 +261,7 @@ export class InventoryService {
         serialNo: data.serialNo || null,
         warranty: data.warranty || null,
         colour: data.colour || null,
+        supplier: data.supplier?.trim() || null,
         isActive: true,
       },
       include: { category: true },
@@ -272,8 +274,9 @@ export class InventoryService {
         type: 'PURCHASE',
         quantity: data.initialStock,
         supplierId: data.supplierId,
+        supplierName: data.supplier?.trim() || undefined,
         unitCost: data.unitCost,
-        note: 'Opening stock',
+        note: data.supplier?.trim() ? `Opening stock (Supplier: ${data.supplier.trim()})` : 'Opening stock',
         createdBy,
       });
     }
@@ -307,6 +310,7 @@ export class InventoryService {
       serialNo?: string;
       warranty?: string;
       colour?: string;
+      supplier?: string;
     },
     updatedBy?: string,
   ) {
@@ -332,6 +336,7 @@ export class InventoryService {
         serialNo: data.serialNo,
         warranty: data.warranty,
         colour: data.colour,
+        ...(data.supplier !== undefined && { supplier: data.supplier?.trim() || null }),
       },
       include: { category: true },
     });
@@ -439,6 +444,8 @@ export class InventoryService {
     type: StockTxnType;
     quantity: number;
     supplierId?: string;
+    supplierName?: string;
+    supplier?: string;
     unitCost?: number;
     reference?: string;
     note?: string;
@@ -481,6 +488,7 @@ export class InventoryService {
           clinicId,
           productId: data.productId,
           supplierId: data.supplierId,
+          supplierName: data.supplierName?.trim() || data.supplier?.trim() || null,
           type: data.type,
           quantity: delta,
           balance,

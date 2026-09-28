@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { inventoryApi } from '../../services/inventory';
-import type { Product, ProductCategory, Supplier } from '../../types/inventory';
+import type { Product, ProductCategory } from '../../types/inventory';
 
 function money(value?: number | string | null) {
   return `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -37,7 +37,7 @@ const emptyForm = {
   taxRate: '' as unknown as number,
   lowStockThreshold: '' as unknown as number,
   initialStock: '' as unknown as number,
-  supplierId: '',
+  supplier: '',
   unitCost: '' as unknown as number,
   serialNo: '',
   warranty: '2 years',
@@ -61,7 +61,6 @@ function getBrandAndModel(p: Product): { brand: string; model: string } {
 export function InventoryItemMasterPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [form, setForm] = useState(emptyForm);
@@ -83,6 +82,7 @@ export function InventoryItemMasterPage() {
     brand: '',
     name: '',
     categoryId: '',
+    supplier: '',
     unitPrice: '' as unknown as number,
     taxRate: '' as unknown as number,
     lowStockThreshold: '' as unknown as number,
@@ -101,14 +101,12 @@ export function InventoryItemMasterPage() {
   const load = async (q = search) => {
     setIsLoading(true);
     try {
-      const [prod, cats, sup] = await Promise.all([
+      const [prod, cats] = await Promise.all([
         inventoryApi.getProducts({ search: q.trim() || undefined, limit: 100 }),
         inventoryApi.getCategories(),
-        inventoryApi.getSuppliers(),
       ]);
       setProducts(prod.data || []);
       setCategories(cats);
-      setSuppliers(sup);
 
       // Default to first category if form categoryId is empty
       if (!form.categoryId && cats.length > 0) {
@@ -167,7 +165,7 @@ export function InventoryItemMasterPage() {
         taxRate: Number(form.taxRate || 0),
         lowStockThreshold: Number(form.lowStockThreshold || 1),
         initialStock: Number(form.initialStock || 0),
-        supplierId: form.supplierId || undefined,
+        supplier: form.supplier.trim() || undefined,
         unitCost: Number(form.unitCost || 0),
         colour: form.colour.trim() || undefined,
         serialNo: form.serialNo.trim() || undefined,
@@ -194,6 +192,7 @@ export function InventoryItemMasterPage() {
       brand: brand !== '—' ? brand : '',
       name: model,
       categoryId: p.categoryId,
+      supplier: p.supplier || '',
       unitPrice: Number(p.unitPrice) > 0 ? Number(p.unitPrice) : ('' as any),
       taxRate: Number(p.taxRate) > 0 ? Number(p.taxRate) : ('' as any),
       lowStockThreshold: Number(p.lowStockThreshold) > 0 ? Number(p.lowStockThreshold) : ('' as any),
@@ -219,6 +218,7 @@ export function InventoryItemMasterPage() {
         model: modelFullName,
         description: brand ? `Brand: ${brand}` : undefined,
         categoryId: editForm.categoryId,
+        supplier: editForm.supplier.trim() || undefined,
         unitPrice: Number(editForm.unitPrice || 0),
         taxRate: Number(editForm.taxRate || 0),
         lowStockThreshold: Number(editForm.lowStockThreshold || 1),
@@ -257,6 +257,15 @@ export function InventoryItemMasterPage() {
 
   const filteredProducts = products.filter((p) => {
     if (categoryFilter && p.categoryId !== categoryFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const { brand, model } = getBrandAndModel(p);
+      const matchSku = p.sku.toLowerCase().includes(q);
+      const matchBrand = brand.toLowerCase().includes(q);
+      const matchModel = model.toLowerCase().includes(q);
+      const matchSupplier = (p.supplier || '').toLowerCase().includes(q);
+      return matchSku || matchBrand || matchModel || matchSupplier;
+    }
     return true;
   });
 
@@ -478,19 +487,14 @@ export function InventoryItemMasterPage() {
             </div>
 
             <div>
-              <label className="label">Opening supplier</label>
-              <select
+              <label className="label">Supplier</label>
+              <input
                 className="input"
-                value={form.supplierId}
-                onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
-              >
-                <option value="">Select supplier (optional)</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                type="text"
+                placeholder="e.g. Phonak, Oticon, Signia"
+                value={form.supplier}
+                onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+              />
             </div>
 
             <div>
@@ -522,7 +526,7 @@ export function InventoryItemMasterPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             className="input pl-9"
-            placeholder="Search by SKU, Brand, or Model name..."
+            placeholder="Search by SKU, Brand, Model, or Supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && load()}
@@ -562,6 +566,7 @@ export function InventoryItemMasterPage() {
                   <th className="px-3 py-2.5 text-left">Brand name</th>
                   <th className="px-3 py-2.5 text-left">Model name</th>
                   <th className="px-3 py-2.5 text-left">Category</th>
+                  <th className="px-3 py-2.5 text-left">Supplier</th>
                   <th className="px-3 py-2.5 text-right">Price</th>
                   <th className="px-3 py-2.5 text-right">Stock</th>
                   <th className="px-3 py-2.5 text-left">Status</th>
@@ -601,6 +606,15 @@ export function InventoryItemMasterPage() {
                             }`}
                           >
                             {p.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {p.supplier ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">
+                            {p.supplier}
                           </span>
                         ) : (
                           <span className="text-gray-400">—</span>
@@ -774,6 +788,16 @@ export function InventoryItemMasterPage() {
                     placeholder="1"
                     value={editForm.lowStockThreshold === 0 ? '' : (editForm.lowStockThreshold || '')}
                     onChange={(e) => setEditForm({ ...editForm, lowStockThreshold: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Supplier</label>
+                  <input
+                    className="input"
+                    value={editForm.supplier}
+                    onChange={(e) => setEditForm({ ...editForm, supplier: e.target.value })}
+                    placeholder="e.g. Phonak, Oticon, Signia"
                   />
                 </div>
 

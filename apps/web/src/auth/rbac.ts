@@ -149,7 +149,6 @@ export const navigation: readonly NavItem[] = [
       { name: 'Stock entry', href: '/inventory/movements', roles: ['ADMIN', 'INVENTORY'] },
       { name: 'Item returns', href: '/inventory/returns', roles: ['ADMIN', 'INVENTORY'] },
       { name: 'Return report', href: '/inventory/returns-report', roles: ['ADMIN', 'INVENTORY'] },
-      { name: 'Suppliers', href: '/inventory/suppliers', roles: ['ADMIN', 'INVENTORY'] },
     ],
   },
   {
