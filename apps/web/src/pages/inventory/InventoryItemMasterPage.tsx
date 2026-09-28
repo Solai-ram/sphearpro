@@ -403,7 +403,7 @@ export function InventoryItemMasterPage() {
           {/* Secondary Specifications */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
             <div>
-              <label className="label">Price / unit (₹) *</label>
+              <label className="label">MRP per unit (₹) *</label>
               <input
                 className="input"
                 type="number"
@@ -498,7 +498,7 @@ export function InventoryItemMasterPage() {
             </div>
 
             <div>
-              <label className="label">Unit purchase cost (₹)</label>
+              <label className="label">Stock price (₹)</label>
               <input
                 className="input"
                 type="number"
@@ -567,7 +567,7 @@ export function InventoryItemMasterPage() {
                   <th className="px-3 py-2.5 text-left">Model name</th>
                   <th className="px-3 py-2.5 text-left">Category</th>
                   <th className="px-3 py-2.5 text-left">Supplier</th>
-                  <th className="px-3 py-2.5 text-right">Price</th>
+                  <th className="px-3 py-2.5 text-right">MRP</th>
                   <th className="px-3 py-2.5 text-right">Stock</th>
                   <th className="px-3 py-2.5 text-left">Status</th>
                   <th className="px-3 py-2.5 text-right">Actions</th>
@@ -753,7 +753,7 @@ export function InventoryItemMasterPage() {
                 </div>
 
                 <div>
-                  <label className="label">Price / unit (₹) *</label>
+                  <label className="label">MRP per unit (₹) *</label>
                   <input
                     className="input"
                     type="number"

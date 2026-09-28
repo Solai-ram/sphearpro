@@ -102,7 +102,7 @@ export function InventoryStockEntryPage() {
           value={form.supplierName}
           onChange={(e) => setForm({ ...form, supplierName: e.target.value })}
         />
-        <input className="input" type="number" min={0} step="0.01" placeholder="Unit cost" value={form.unitCost === 0 ? '' : (form.unitCost ?? '')} onChange={(e) => setForm({ ...form, unitCost: e.target.value === '' ? undefined : Number(e.target.value) })} />
+        <input className="input" type="number" min={0} step="0.01" placeholder="Stock price (₹)" value={form.unitCost === 0 ? '' : (form.unitCost ?? '')} onChange={(e) => setForm({ ...form, unitCost: e.target.value === '' ? undefined : Number(e.target.value) })} />
         <input className="input" placeholder="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         <div className="col-span-2 md:col-span-3 flex justify-end">
           <button className="btn-primary" type="submit">Record movement</button>
