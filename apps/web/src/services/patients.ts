@@ -22,7 +22,9 @@ export type PatientSearchHit = {
   dateOfBirth?: string;
   address?: Record<string, any>;
   emergencyContact?: Record<string, any>;
+  createdAt?: string;
   opCases?: { id: string; createdAt: string; chiefComplaint?: string | null; status?: string }[];
+  invoices?: { id: string; invoiceNumber?: string; issueDate: string; grandTotal?: number; status?: string }[];
 };
 
 export const patientsApi = {
@@ -64,9 +66,10 @@ export const patientsApi = {
     });
   },
 
-  search(q: string, limit = 10, options?: { opRegistered?: boolean }) {
+  search(q: string, limit = 20, options?: { opRegistered?: boolean; visitDate?: string }) {
     const params = new URLSearchParams({ q, limit: String(limit) });
     if (options?.opRegistered) params.set('opRegistered', 'true');
+    if (options?.visitDate) params.set('visitDate', options.visitDate);
     return fetchApi<PatientSearchHit[] | { data: PatientSearchHit[] }>(
       `/patients/search?${params.toString()}`,
     ).then((res) => (Array.isArray(res) ? res : res.data || []));

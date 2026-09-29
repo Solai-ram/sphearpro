@@ -306,21 +306,53 @@ export class PatientsService {
     return updated;
   }
 
-  async search(query: string, limit = 10, options?: { opRegistered?: boolean; clinicId: string }) {
-    return this.prisma.patient.findMany({
-      where: {
-        clinicId: options?.clinicId,
-        deletedAt: null,
-        ...(options?.opRegistered ? { opCases: { some: {} } } : {}),
+  async search(
+    query: string,
+    limit = 20,
+    options?: { opRegistered?: boolean; clinicId: string; visitDate?: string },
+  ) {
+    const where: any = {
+      clinicId: options?.clinicId,
+      deletedAt: null,
+      ...(options?.opRegistered ? { opCases: { some: {} } } : {}),
+    };
+
+    const andConditions: any[] = [];
+    const q = (query || '').trim();
+    if (q) {
+      andConditions.push({
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { patientNumber: { contains: query, mode: 'insensitive' } },
-          { phone: { contains: query } },
-          { email: { contains: query, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+          { patientNumber: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q } },
+          { email: { contains: q, mode: 'insensitive' } },
         ],
-      },
+      });
+    }
+
+    if (options?.visitDate) {
+      const parts = options.visitDate.split('-').map(Number);
+      if (parts.length === 3 && !parts.some(Number.isNaN)) {
+        const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+        andConditions.push({
+          OR: [
+            { opCases: { some: { createdAt: { gte: start, lte: end } } } },
+            { appointments: { some: { startTime: { gte: start, lte: end } } } },
+            { createdAt: { gte: start, lte: end } },
+          ],
+        });
+      }
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    return this.prisma.patient.findMany({
+      where,
       take: limit,
-      orderBy: { name: 'asc' },
+      orderBy: options?.visitDate ? { createdAt: 'desc' } : { name: 'asc' },
       select: {
         id: true,
         patientNumber: true,
@@ -332,10 +364,16 @@ export class PatientsService {
         dateOfBirth: true,
         address: true,
         emergencyContact: true,
+        createdAt: true,
         opCases: {
           orderBy: { createdAt: 'desc' },
           take: 5,
           select: { id: true, createdAt: true, chiefComplaint: true, status: true },
+        },
+        invoices: {
+          orderBy: { issueDate: 'desc' },
+          take: 5,
+          select: { id: true, invoiceNumber: true, issueDate: true, grandTotal: true, status: true },
         },
       },
     });
