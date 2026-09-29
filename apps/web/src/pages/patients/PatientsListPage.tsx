@@ -160,8 +160,8 @@ export function PatientsListPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">OP reports</h1>
-          <p className="text-gray-500">Manage and view registered OP patient records</p>
+          <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
+          <p className="text-gray-500">Manage and view registered patient directory</p>
         </div>
       </div>
 

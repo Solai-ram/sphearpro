@@ -113,6 +113,9 @@ export class ClinicalService {
     if (data.paymentMethod) {
       vitals.paymentMethod = data.paymentMethod;
     }
+    if (data.isReview) {
+      vitals.isReview = true;
+    }
 
     const opCase = await this.prisma.opCase.create({
       data: {
@@ -290,13 +293,17 @@ export class ClinicalService {
     page?: number;
     limit?: number;
     search?: string;
+    patientName?: string;
+    regNo?: string;
+    department?: string;
+    phone?: string;
     providerId?: string;
     status?: string;
     startDate?: Date;
     endDate?: Date;
     clinicId: string;
   }) {
-    const { page = 1, limit = 20, search, providerId, status, startDate, endDate } = params;
+    const { page = 1, limit = 20, search, patientName, regNo, department, phone, providerId, status, startDate, endDate } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.OpCaseWhereInput = { clinicId: params.clinicId };
@@ -307,12 +314,56 @@ export class ClinicalService {
       if (startDate) where.createdAt.gte = startDate;
       if (endDate) where.createdAt.lte = endDate;
     }
+
+    const andConditions: any[] = [];
+
     if (search) {
-      where.OR = [
-        { chiefComplaint: { contains: search, mode: 'insensitive' } },
-        { patient: { name: { contains: search, mode: 'insensitive' } } },
-        { patient: { patientNumber: { contains: search, mode: 'insensitive' } } },
-      ];
+      andConditions.push({
+        OR: [
+          { chiefComplaint: { contains: search, mode: 'insensitive' } },
+          { patient: { name: { contains: search, mode: 'insensitive' } } },
+          { patient: { patientNumber: { contains: search, mode: 'insensitive' } } },
+          { patient: { phone: { contains: search } } },
+        ],
+      });
+    }
+
+    if (patientName) {
+      andConditions.push({
+        patient: { name: { contains: patientName.trim(), mode: 'insensitive' } },
+      });
+    }
+
+    if (regNo) {
+      andConditions.push({
+        patient: { patientNumber: { contains: regNo.trim(), mode: 'insensitive' } },
+      });
+    }
+
+    if (phone) {
+      andConditions.push({
+        patient: {
+          OR: [
+            { phone: { contains: phone.trim() } },
+            { alternatePhone: { contains: phone.trim() } },
+          ],
+        },
+      });
+    }
+
+    if (department) {
+      andConditions.push({
+        provider: {
+          OR: [
+            { department: { contains: department.trim(), mode: 'insensitive' } },
+            { specialization: { contains: department.trim(), mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [data, total] = await Promise.all([
@@ -328,13 +379,16 @@ export class ClinicalService {
               name: true,
               patientNumber: true,
               phone: true,
+              alternatePhone: true,
               email: true,
               gender: true,
               dateOfBirth: true,
               address: true,
+              emergencyContact: true,
             },
           },
-          provider: { select: { id: true, name: true, staffType: true } },
+          provider: { select: { id: true, name: true, staffType: true, department: true, specialization: true } },
+          visits: { orderBy: { visitedAt: 'desc' }, take: 1 },
           _count: { select: { diagnoses: true, prescriptions: true, followUps: true } },
         },
       }),

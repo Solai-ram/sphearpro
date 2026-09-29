@@ -30,6 +30,10 @@ export class ClinicalController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'patientName', required: false, type: String })
+  @ApiQuery({ name: 'regNo', required: false, type: String })
+  @ApiQuery({ name: 'department', required: false, type: String })
+  @ApiQuery({ name: 'phone', required: false, type: String })
   @ApiQuery({ name: 'providerId', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'startDate', required: false, type: String })
@@ -39,6 +43,10 @@ export class ClinicalController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
+    @Query('patientName') patientName?: string,
+    @Query('regNo') regNo?: string,
+    @Query('department') department?: string,
+    @Query('phone') phone?: string,
     @Query('providerId') providerId?: string,
     @Query('status') status?: string,
     @Query('startDate') startDate?: string,
@@ -48,6 +56,10 @@ export class ClinicalController {
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
       search,
+      patientName,
+      regNo,
+      department,
+      phone,
       providerId,
       status,
       startDate: startDate ? new Date(startDate) : undefined,
