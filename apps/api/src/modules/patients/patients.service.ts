@@ -308,8 +308,23 @@ export class PatientsService {
 
   async search(
     query: string,
-    limit = 20,
-    options?: { opRegistered?: boolean; clinicId: string; visitDate?: string },
+    limit = 50,
+    options?: {
+      opRegistered?: boolean;
+      clinicId: string;
+      visitDate?: string;
+      name?: string;
+      regNo?: string;
+      phone?: string;
+      gender?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      matchMode?: 'startsWith' | 'contains';
+      doctorId?: string;
+      address?: string;
+      relationName?: string;
+      visitType?: 'OP' | 'THERAPY' | 'ALL';
+    },
   ) {
     const where: any = {
       clinicId: options?.clinicId,
@@ -318,6 +333,40 @@ export class PatientsService {
     };
 
     const andConditions: any[] = [];
+    const isStarts = options?.matchMode === 'startsWith';
+
+    // 1. Name
+    const nameVal = (options?.name || '').trim();
+    if (nameVal) {
+      andConditions.push({
+        name: isStarts
+          ? { startsWith: nameVal, mode: 'insensitive' }
+          : { contains: nameVal, mode: 'insensitive' },
+      });
+    }
+
+    // 2. Reg No (patientNumber)
+    const regNoVal = (options?.regNo || '').trim();
+    if (regNoVal) {
+      andConditions.push({
+        patientNumber: isStarts
+          ? { startsWith: regNoVal, mode: 'insensitive' }
+          : { contains: regNoVal, mode: 'insensitive' },
+      });
+    }
+
+    // 3. Phone / Mobile
+    const phoneVal = (options?.phone || '').trim();
+    if (phoneVal) {
+      andConditions.push({
+        OR: [
+          { phone: { contains: phoneVal } },
+          { alternatePhone: { contains: phoneVal } },
+        ],
+      });
+    }
+
+    // 4. Quick query `q`
     const q = (query || '').trim();
     if (q) {
       andConditions.push({
@@ -330,19 +379,61 @@ export class PatientsService {
       });
     }
 
-    if (options?.visitDate) {
-      const parts = options.visitDate.split('-').map(Number);
-      if (parts.length === 3 && !parts.some(Number.isNaN)) {
-        const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
-        const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+    // 5. Gender
+    if (options?.gender && options.gender !== 'ALL') {
+      andConditions.push({ gender: options.gender as any });
+    }
+
+    // 6. Date Range (dateFrom & dateTo or visitDate)
+    const dFrom = options?.dateFrom || options?.visitDate;
+    const dTo = options?.dateTo || options?.visitDate;
+    if (dFrom || dTo) {
+      let start: Date | undefined;
+      let end: Date | undefined;
+      if (dFrom) {
+        const parts = dFrom.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(Number.isNaN)) {
+          start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+      }
+      if (dTo) {
+        const parts = dTo.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(Number.isNaN)) {
+          end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+        }
+      }
+
+      if (start || end) {
+        const dateRange: any = {};
+        if (start) dateRange.gte = start;
+        if (end) dateRange.lte = end;
+
         andConditions.push({
           OR: [
-            { opCases: { some: { createdAt: { gte: start, lte: end } } } },
-            { appointments: { some: { startTime: { gte: start, lte: end } } } },
-            { createdAt: { gte: start, lte: end } },
+            { createdAt: dateRange },
+            { opCases: { some: { createdAt: dateRange } } },
+            { appointments: { some: { startTime: dateRange } } },
           ],
         });
       }
+    }
+
+    // 7. Doctor
+    if (options?.doctorId && options.doctorId !== 'ALL') {
+      andConditions.push({
+        OR: [
+          { opCases: { some: { providerId: options.doctorId } } },
+          { appointments: { some: { providerId: options.doctorId } } },
+          { therapyCases: { some: { therapistId: options.doctorId } } },
+        ],
+      });
+    }
+
+    // 8. Visit Type (OP, THERAPY, ALL)
+    if (options?.visitType === 'OP') {
+      andConditions.push({ opCases: { some: {} } });
+    } else if (options?.visitType === 'THERAPY') {
+      andConditions.push({ therapyCases: { some: {} } });
     }
 
     if (andConditions.length > 0) {
@@ -352,7 +443,7 @@ export class PatientsService {
     return this.prisma.patient.findMany({
       where,
       take: limit,
-      orderBy: options?.visitDate ? { createdAt: 'desc' } : { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         patientNumber: true,
@@ -367,8 +458,23 @@ export class PatientsService {
         createdAt: true,
         opCases: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
-          select: { id: true, createdAt: true, chiefComplaint: true, status: true },
+          take: 3,
+          select: {
+            id: true,
+            createdAt: true,
+            chiefComplaint: true,
+            status: true,
+            provider: { select: { id: true, name: true } },
+          },
+        },
+        appointments: {
+          orderBy: { startTime: 'desc' },
+          take: 3,
+          select: {
+            id: true,
+            startTime: true,
+            provider: { select: { id: true, name: true } },
+          },
         },
         invoices: {
           orderBy: { issueDate: 'desc' },

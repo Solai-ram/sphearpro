@@ -23,8 +23,35 @@ export type PatientSearchHit = {
   address?: Record<string, any>;
   emergencyContact?: Record<string, any>;
   createdAt?: string;
-  opCases?: { id: string; createdAt: string; chiefComplaint?: string | null; status?: string }[];
+  opCases?: {
+    id: string;
+    createdAt: string;
+    chiefComplaint?: string | null;
+    status?: string;
+    provider?: { id: string; name: string };
+  }[];
+  appointments?: {
+    id: string;
+    startTime: string;
+    provider?: { id: string; name: string };
+  }[];
   invoices?: { id: string; invoiceNumber?: string; issueDate: string; grandTotal?: number; status?: string }[];
+};
+
+export type AdvancedSearchFilters = {
+  opRegistered?: boolean;
+  visitDate?: string;
+  name?: string;
+  regNo?: string;
+  phone?: string;
+  gender?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  matchMode?: 'startsWith' | 'contains';
+  doctorId?: string;
+  address?: string;
+  relationName?: string;
+  visitType?: 'OP' | 'THERAPY' | 'ALL';
 };
 
 export const patientsApi = {
@@ -66,10 +93,25 @@ export const patientsApi = {
     });
   },
 
-  search(q: string, limit = 20, options?: { opRegistered?: boolean; visitDate?: string }) {
-    const params = new URLSearchParams({ q, limit: String(limit) });
-    if (options?.opRegistered) params.set('opRegistered', 'true');
-    if (options?.visitDate) params.set('visitDate', options.visitDate);
+  search(q = '', limit = 50, options?: AdvancedSearchFilters) {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    params.set('limit', String(limit));
+    if (options) {
+      if (options.opRegistered) params.set('opRegistered', 'true');
+      if (options.visitDate) params.set('visitDate', options.visitDate);
+      if (options.name) params.set('name', options.name);
+      if (options.regNo) params.set('regNo', options.regNo);
+      if (options.phone) params.set('phone', options.phone);
+      if (options.gender) params.set('gender', options.gender);
+      if (options.dateFrom) params.set('dateFrom', options.dateFrom);
+      if (options.dateTo) params.set('dateTo', options.dateTo);
+      if (options.matchMode) params.set('matchMode', options.matchMode);
+      if (options.doctorId) params.set('doctorId', options.doctorId);
+      if (options.address) params.set('address', options.address);
+      if (options.relationName) params.set('relationName', options.relationName);
+      if (options.visitType) params.set('visitType', options.visitType);
+    }
     return fetchApi<PatientSearchHit[] | { data: PatientSearchHit[] }>(
       `/patients/search?${params.toString()}`,
     ).then((res) => (Array.isArray(res) ? res : res.data || []));
