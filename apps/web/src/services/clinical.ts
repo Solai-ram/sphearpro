@@ -20,6 +20,10 @@ export const clinicalApi = {
     if (filters?.page) params.append('page', String(filters.page));
     if (filters?.limit) params.append('limit', String(filters.limit));
     if (filters?.search) params.append('search', filters.search);
+    if (filters?.patientName) params.append('patientName', filters.patientName);
+    if (filters?.regNo) params.append('regNo', filters.regNo);
+    if (filters?.department) params.append('department', filters.department);
+    if (filters?.phone) params.append('phone', filters.phone);
     if (filters?.providerId) params.append('providerId', filters.providerId);
     if (filters?.status) params.append('status', filters.status);
     if (filters?.startDate) params.append('startDate', filters.startDate);

@@ -170,6 +170,10 @@ export interface ClinicalFilters {
   page?: number;
   limit?: number;
   search?: string;
+  patientName?: string;
+  regNo?: string;
+  department?: string;
+  phone?: string;
   providerId?: string;
   status?: string;
   startDate?: string;
