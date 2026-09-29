@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { BarChart2 } from 'lucide-react';
 import { ReportKpis, ReportPrintFrame } from '../../components/reports/ReportPrintFrame';
-import { DateRangeFilter, rangeForPeriod, type DateRangeValue } from '../../components/DateRangeFilter';
+import { rangeForPeriod, type DateRangeValue } from '../../components/DateRangeFilter';
+import { HospitalReportQueryBar, type ReportDateRange } from '../../components/reports/HospitalReportQueryBar';
 import { reportsApi } from '../../services/dashboard';
 import { billingApi } from '../../services/billing';
 import { inventoryApi } from '../../services/inventory';
@@ -146,7 +147,33 @@ function ReportViewer({ id }: { id: ReportId }) {
       onExport={meta.csv ? () => {
         reportsApi.exportCsv(meta.csv!, range.startDate, range.endDate).catch(() => undefined);
       } : undefined}
-      filters={meta.ranged ? <DateRangeFilter value={range} onChange={setRange} /> : undefined}
+      filters={
+        meta.ranged ? (
+          <div className="bg-white p-3 rounded-xl border border-gray-200/90 shadow-2xs">
+            <HospitalReportQueryBar
+              startDate={range.startDate}
+              endDate={range.endDate}
+              onDateChange={({ startDate, endDate }: ReportDateRange) => {
+                setRange({ period: 'custom', startDate, endDate });
+              }}
+              onExecute={() => {
+                setRange((prev) => ({ ...prev }));
+              }}
+              onReset={() => {
+                setRange(rangeForPeriod('monthly'));
+              }}
+              isLoading={isLoading}
+              onExportCsv={
+                meta.csv
+                  ? () => {
+                      reportsApi.exportCsv(meta.csv!, range.startDate, range.endDate).catch(() => undefined);
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        ) : undefined
+      }
     >
       {payload ? renderReport(id, payload) : null}
     </ReportPrintFrame>
