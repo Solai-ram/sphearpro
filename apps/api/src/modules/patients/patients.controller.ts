@@ -56,20 +56,53 @@ export class PatientsController {
   @Authenticated('patients.view')
   @ApiOperation({ summary: 'Search patients (autocomplete or advanced)' })
   @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'name', required: false, type: String })
+  @ApiQuery({ name: 'regNo', required: false, type: String })
+  @ApiQuery({ name: 'phone', required: false, type: String })
+  @ApiQuery({ name: 'gender', required: false, type: String })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
   @ApiQuery({ name: 'visitDate', required: false, type: String })
+  @ApiQuery({ name: 'matchMode', required: false, enum: ['startsWith', 'contains'] })
+  @ApiQuery({ name: 'doctorId', required: false, type: String })
+  @ApiQuery({ name: 'address', required: false, type: String })
+  @ApiQuery({ name: 'relationName', required: false, type: String })
+  @ApiQuery({ name: 'visitType', required: false, enum: ['OP', 'THERAPY', 'ALL'] })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'opRegistered', required: false, type: Boolean })
   async search(
     @CurrentUser() user: { clinicId?: string },
     @Query('q') q?: string,
+    @Query('name') name?: string,
+    @Query('regNo') regNo?: string,
+    @Query('phone') phone?: string,
+    @Query('gender') gender?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
     @Query('visitDate') visitDate?: string,
+    @Query('matchMode') matchMode?: 'startsWith' | 'contains',
+    @Query('doctorId') doctorId?: string,
+    @Query('address') address?: string,
+    @Query('relationName') relationName?: string,
+    @Query('visitType') visitType?: 'OP' | 'THERAPY' | 'ALL',
     @Query('limit') limit?: number,
     @Query('opRegistered') opRegistered?: string,
   ) {
-    return this.patientsService.search(q || '', limit ? Number(limit) : 20, {
+    return this.patientsService.search(q || '', limit ? Number(limit) : 50, {
       opRegistered: opRegistered === 'true' || opRegistered === '1',
       clinicId: requireClinicId(user),
+      name,
+      regNo,
+      phone,
+      gender,
+      dateFrom,
+      dateTo,
       visitDate,
+      matchMode,
+      doctorId,
+      address,
+      relationName,
+      visitType,
     });
   }
 
