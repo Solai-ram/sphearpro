@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Check,
   X,
+  Columns,
 } from 'lucide-react';
 
 export type ReportDateRange = {
@@ -44,6 +45,7 @@ interface HospitalReportQueryBarProps {
   onExportCsv?: () => void;
   onCopy?: () => void;
   onPrint?: () => void;
+  onColumnView?: () => void;
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
   groupLabel?: string;
@@ -61,6 +63,7 @@ export function HospitalReportQueryBar({
   onExportCsv,
   onCopy,
   onPrint,
+  onColumnView,
   pageSize,
   onPageSizeChange,
   groupLabel,
@@ -175,6 +178,18 @@ export function HospitalReportQueryBar({
           <FileText className="w-3.5 h-3.5 text-rose-600" />
           PDF
         </button>
+
+        {onColumnView && (
+          <button
+            type="button"
+            onClick={onColumnView}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium cursor-pointer shadow-2xs"
+            title="Configure Visible Columns"
+          >
+            <Columns className="w-3.5 h-3.5 text-blue-600" />
+            Column View
+          </button>
+        )}
 
         {pageSize !== undefined && onPageSizeChange && (
           <div className="inline-flex items-center gap-1 border border-gray-300 rounded bg-white px-2 py-1 shadow-2xs">

@@ -769,7 +769,7 @@ export function OpReportPage() {
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
                 {visibleColumns.sno && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>S.NO</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -777,7 +777,7 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.regNo && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>REG NO</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -785,7 +785,7 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.tokenNo && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>TOKEN NO</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -793,7 +793,7 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.visitDate && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>VISIT DATE</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -801,7 +801,7 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.visitType && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>VISIT TYPE</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -809,10 +809,10 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.abhaId && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">ABHA ID / UHID</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">ABHA ID / UHID</th>
                 )}
                 {visibleColumns.name && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                     <div className="flex items-center gap-1">
                       <span>NAME</span>
                       <ArrowUpDown className="w-3 h-3 opacity-70" />
@@ -820,25 +820,25 @@ export function OpReportPage() {
                   </th>
                 )}
                 {visibleColumns.age && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">AGE</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">AGE</th>
                 )}
                 {visibleColumns.gender && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">GENDER</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">GENDER</th>
                 )}
                 {visibleColumns.department && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">DEPARTMENT</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">DEPARTMENT</th>
                 )}
                 {visibleColumns.doctor && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">DOCTOR</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">DOCTOR</th>
                 )}
                 {visibleColumns.relationName && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">FATHER / SPOUSE NAME</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">FATHER / SPOUSE NAME</th>
                 )}
                 {visibleColumns.mobile && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">MOBILE</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">MOBILE</th>
                 )}
                 {visibleColumns.address && (
-                  <th className="px-3 py-2.5 whitespace-nowrap">ADDRESS</th>
+                  <th className="px-2.5 py-2 whitespace-nowrap">ADDRESS</th>
                 )}
               </tr>
             </thead>
@@ -879,12 +879,12 @@ export function OpReportPage() {
                       className="hover:bg-cyan-50/40 transition-colors group"
                     >
                       {visibleColumns.sno && (
-                        <td className="px-3 py-2 font-mono text-gray-500">
+                        <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">
                           {rowNumber}
                         </td>
                       )}
                       {visibleColumns.regNo && (
-                        <td className="px-3 py-2 font-mono font-bold text-blue-700 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 font-mono font-bold text-blue-700 whitespace-nowrap border-r border-gray-200">
                           <Link
                             to={`/patients/${p.id}`}
                             className="hover:underline"
@@ -895,17 +895,17 @@ export function OpReportPage() {
                         </td>
                       )}
                       {visibleColumns.tokenNo && (
-                        <td className="px-3 py-2 font-mono text-gray-600 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 font-mono text-gray-600 whitespace-nowrap border-r border-gray-200">
                           OP-{String(rowNumber).padStart(2, '0')}
                         </td>
                       )}
                       {visibleColumns.visitDate && (
-                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-700 border-r border-gray-200">
                           {formatVisitDate(c.createdAt)}
                         </td>
                       )}
                       {visibleColumns.visitType && (
-                        <td className="px-3 py-2 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap border-r border-gray-200">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                               isReview
@@ -918,47 +918,47 @@ export function OpReportPage() {
                         </td>
                       )}
                       {visibleColumns.abhaId && (
-                        <td className="px-3 py-2 font-mono text-gray-500 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 font-mono text-gray-500 whitespace-nowrap border-r border-gray-200">
                           {p.id ? p.id.slice(-8).toUpperCase() : '—'}
                         </td>
                       )}
                       {visibleColumns.name && (
-                        <td className="px-3 py-2 font-bold text-gray-900 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 font-bold text-gray-900 whitespace-nowrap border-r border-gray-200">
                           {p.name}
                         </td>
                       )}
                       {visibleColumns.age && (
-                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-700 border-r border-gray-200">
                           {patientAge != null ? `${patientAge} Y` : '—'}
                         </td>
                       )}
                       {visibleColumns.gender && (
-                        <td className="px-3 py-2 whitespace-nowrap text-gray-700 uppercase">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-700 uppercase border-r border-gray-200">
                           {p.gender || '—'}
                         </td>
                       )}
                       {visibleColumns.department && (
-                        <td className="px-3 py-2 whitespace-nowrap text-gray-700 uppercase">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-700 uppercase border-r border-gray-200">
                           {dept}
                         </td>
                       )}
                       {visibleColumns.doctor && (
-                        <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap font-medium text-gray-800 border-r border-gray-200">
                           {docName}
                         </td>
                       )}
                       {visibleColumns.relationName && (
-                        <td className="px-3 py-2 whitespace-nowrap text-gray-600">
+                        <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-600 border-r border-gray-200">
                           {relName}
                         </td>
                       )}
                       {visibleColumns.mobile && (
-                        <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">
+                        <td className="px-2.5 py-1.5 font-mono text-gray-800 whitespace-nowrap border-r border-gray-200">
                           {p.phone || '—'}
                         </td>
                       )}
                       {visibleColumns.address && (
-                        <td className="px-3 py-2 text-gray-600 max-w-xs truncate" title={formattedAddr}>
+                        <td className="px-2.5 py-1.5 text-gray-600 max-w-xs truncate" title={formattedAddr}>
                           {formattedAddr || '—'}
                         </td>
                       )}
