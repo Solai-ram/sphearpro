@@ -287,33 +287,32 @@ export function InventoryStockReportPage() {
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3.5 py-3 whitespace-nowrap">S.NO</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                   <div className="flex items-center gap-1">
                     <span>ITEM NAME</span>
                     <ArrowUpDown className="w-3 h-3 opacity-70" />
                   </div>
                 </th>
-                <th className="px-3.5 py-3 whitespace-nowrap">SKU / CODE</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">CATEGORY</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">STOCK PRICE</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">MRP / UNIT</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">ON HAND</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">STOCK VALUE</th>
-                <th className="px-3.5 py-3 text-center whitespace-nowrap">STATUS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">SKU / CODE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">CATEGORY</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">UNIT PRICE</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">ON HAND</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">STOCK VALUE</th>
+                <th className="px-2.5 py-2 text-center whitespace-nowrap">STATUS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin text-cyan-600 mx-auto mb-2" />
                     Loading stock records...
                   </td>
                 </tr>
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                     No items match your filter criteria.
                   </td>
                 </tr>
@@ -323,29 +322,29 @@ export function InventoryStockReportPage() {
                   const itemValue = p.stockValue ?? (Number(p.currentStock || 0) * Number(p.unitPrice || 0));
 
                   return (
-                    <tr key={p.id} className="hover:bg-cyan-50/40 transition-colors">
-                      <td className="px-3.5 py-2 font-mono text-gray-500">{rowNumber}</td>
-                      <td className="px-3.5 py-2 font-bold text-gray-900 whitespace-nowrap">
+                    <tr key={p.id} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{rowNumber}</td>
+                      <td className="px-2.5 py-1.5 font-bold text-gray-900 whitespace-nowrap border-r border-gray-200">
                         <Link to={`/inventory/items`} className="hover:text-blue-600 hover:underline">
                           {p.name}
                         </Link>
                       </td>
-                      <td className="px-3.5 py-2 font-mono text-blue-700 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 font-mono text-blue-700 whitespace-nowrap border-r border-gray-200">
                         {p.sku}
                       </td>
-                      <td className="px-3.5 py-2 whitespace-nowrap text-gray-600">
+                      <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-600 border-r border-gray-200">
                         {p.category?.name || '—'}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-medium text-gray-700 font-mono">
+                      <td className="px-2.5 py-1.5 text-right font-medium text-gray-700 font-mono border-r border-gray-200">
                         {money(p.unitPrice)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-bold text-gray-900 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right font-bold text-gray-900 whitespace-nowrap border-r border-gray-200">
                         {p.currentStock ?? 0}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-bold text-emerald-700 font-mono whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right font-bold text-emerald-700 font-mono whitespace-nowrap border-r border-gray-200">
                         {money(itemValue)}
                       </td>
-                      <td className="px-3.5 py-2 text-center whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                             p.isLowStock
