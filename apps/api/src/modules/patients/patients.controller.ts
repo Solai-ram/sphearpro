@@ -54,19 +54,22 @@ export class PatientsController {
 
   @Get('search')
   @Authenticated('patients.view')
-  @ApiOperation({ summary: 'Search patients (autocomplete)' })
-  @ApiQuery({ name: 'q', required: true, type: String })
+  @ApiOperation({ summary: 'Search patients (autocomplete or advanced)' })
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'visitDate', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'opRegistered', required: false, type: Boolean })
   async search(
     @CurrentUser() user: { clinicId?: string },
-    @Query('q') q: string,
+    @Query('q') q?: string,
+    @Query('visitDate') visitDate?: string,
     @Query('limit') limit?: number,
     @Query('opRegistered') opRegistered?: string,
   ) {
-    return this.patientsService.search(q, limit ? Number(limit) : 10, {
+    return this.patientsService.search(q || '', limit ? Number(limit) : 20, {
       opRegistered: opRegistered === 'true' || opRegistered === '1',
       clinicId: requireClinicId(user),
+      visitDate,
     });
   }
 
