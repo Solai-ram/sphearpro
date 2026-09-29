@@ -46,6 +46,7 @@ import { InventoryReturnsReportPage } from './pages/inventory/InventoryReturnsRe
 // WhatsApp communication disabled in v1
 // import { CommunicationPage } from './pages/communication/CommunicationPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
+import { OpReportPage } from './pages/reports/OpReportPage';
 import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { AiPage } from './pages/ai/AiPage';
 import { UsersPage } from './pages/admin/UsersPage';
@@ -143,7 +144,7 @@ function App() {
         <Route path="/patients/op-new" element={<ClinicalCreatePage />} />
         <Route path="/patients/op-review" element={<ClinicalCreatePage />} />
         <Route path="/patients/services" element={<ServiceMasterPage />} />
-        <Route path="/patients/op-report" element={<Navigate to="/patients" replace />} />
+        <Route path="/patients/op-report" element={<OpReportPage />} />
         <Route path="/patients/:id" element={<PatientDetailPage />} />
         <Route path="/patients/:id/edit" element={<PatientEditPage />} />
         <Route path="/patients/:id/documents" element={<PatientDocumentsPage />} />
@@ -209,6 +210,7 @@ function App() {
         <Route path="/admin/attendance/reports" element={<AdminAttendanceReportsPage />} />
         <Route path="/admin/attendance/leave" element={<AdminAttendanceLeavePage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/op" element={<OpReportPage />} />
         <Route path="/reports/:type" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/roles" element={<RolesPage />} />
