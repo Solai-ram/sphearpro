@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Calendar, FlaskConical, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, Calendar, FlaskConical, Loader2, Plus, Printer } from 'lucide-react';
 import { labApi } from '../../services/lab';
 import type { LabDashboard, LabExecutedPeriod } from '../../types/lab';
 
@@ -55,9 +55,14 @@ export function LabDashboardPage() {
           <h1 className="text-xl font-bold">Audio dashboard</h1>
           <p className="text-sm text-gray-500">Tests billed today, this week, and this month.</p>
         </div>
-        <Link to="/lab/procedures/new" className="btn-primary">
-          <Plus className="w-4 h-4 mr-1" /> New procedure
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/reports/lab" className="btn-secondary">
+            <Printer className="w-4 h-4 mr-1.5" /> Audio report
+          </Link>
+          <Link to="/lab/procedures/new" className="btn-primary">
+            <Plus className="w-4 h-4 mr-1" /> New procedure
+          </Link>
+        </div>
       </div>
 
       {error && (

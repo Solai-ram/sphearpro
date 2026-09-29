@@ -56,7 +56,7 @@ export const navigation: readonly NavItem[] = [
       },
       {
         name: 'OP reports',
-        href: '/patients',
+        href: '/reports/op',
         roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING'],
       },
       {
@@ -196,12 +196,12 @@ export const navigation: readonly NavItem[] = [
     name: 'Reports',
     href: '/reports',
     icon: 'reports',
-    roles: ['ADMIN', 'BILLING', 'INVENTORY'],
+    roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'BILLING', 'INVENTORY'],
     children: [
-      { name: 'OP clinical reports', href: '/reports/clinical', roles: ['ADMIN'] },
-      { name: 'OP visits reports', href: '/reports/op', roles: ['ADMIN'] },
-      { name: 'Therapy reports', href: '/reports/therapy', roles: ['ADMIN'] },
-      { name: 'Audio reports', href: '/reports/lab', roles: ['ADMIN'] },
+      { name: 'OP clinical reports', href: '/reports/clinical', roles: ['ADMIN', 'DOCTOR'] },
+      { name: 'OP visits reports', href: '/reports/op', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
+      { name: 'Therapy reports', href: '/reports/therapy', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
+      { name: 'Audio reports', href: '/reports/lab', roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'] },
       { name: 'Billing reports', href: '/reports/billing', roles: ['ADMIN', 'BILLING'] },
       { name: 'Revenue reports', href: '/reports/revenue', roles: ['ADMIN', 'BILLING'] },
       { name: 'Stock reports', href: '/reports/stock', roles: ['ADMIN', 'INVENTORY'] },
