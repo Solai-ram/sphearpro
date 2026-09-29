@@ -211,6 +211,11 @@ function App() {
         <Route path="/admin/attendance/leave" element={<AdminAttendanceLeavePage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/op" element={<OpReportPage />} />
+        <Route path="/reports/billing" element={<BillingReportPage />} />
+        <Route path="/reports/revenue" element={<RevenueReportPage />} />
+        <Route path="/reports/stock" element={<InventoryStockReportPage />} />
+        <Route path="/reports/sales" element={<InventorySalesReportPage />} />
+        <Route path="/reports/returns" element={<InventoryReturnsReportPage />} />
         <Route path="/reports/:type" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/roles" element={<RolesPage />} />
