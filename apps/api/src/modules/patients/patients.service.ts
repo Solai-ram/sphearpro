@@ -385,23 +385,44 @@ export class PatientsService {
     }
 
     // 6. Date Range (dateFrom & dateTo or visitDate)
+    const parseSearchDate = (raw?: string, isEnd = false): Date | undefined => {
+      if (!raw) return undefined;
+      const s = raw.trim();
+      if (!s) return undefined;
+
+      // Handle DD-MM-YYYY or DD/MM/YYYY
+      if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(s)) {
+        const [d, m, y] = s.split(/[-/]/).map(Number);
+        return isEnd
+          ? new Date(y, m - 1, d, 23, 59, 59, 999)
+          : new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+
+      // Handle YYYY-MM-DD or YYYY/MM/DD
+      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) {
+        const [y, m, d] = s.split(/[-/]/).map(Number);
+        return isEnd
+          ? new Date(y, m - 1, d, 23, 59, 59, 999)
+          : new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+
+      const parsed = new Date(s);
+      if (!Number.isNaN(parsed.getTime())) {
+        if (isEnd) {
+          parsed.setHours(23, 59, 59, 999);
+        } else {
+          parsed.setHours(0, 0, 0, 0);
+        }
+        return parsed;
+      }
+      return undefined;
+    };
+
     const dFrom = options?.dateFrom || options?.visitDate;
     const dTo = options?.dateTo || options?.visitDate;
     if (dFrom || dTo) {
-      let start: Date | undefined;
-      let end: Date | undefined;
-      if (dFrom) {
-        const parts = dFrom.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(Number.isNaN)) {
-          start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
-        }
-      }
-      if (dTo) {
-        const parts = dTo.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(Number.isNaN)) {
-          end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
-        }
-      }
+      const start = parseSearchDate(dFrom, false);
+      const end = parseSearchDate(dTo, true);
 
       if (start || end) {
         const dateRange: any = {};
@@ -412,7 +433,7 @@ export class PatientsService {
           OR: [
             { createdAt: dateRange },
             { opCases: { some: { createdAt: dateRange } } },
-            { appointments: { some: { startTime: dateRange } } },
+            { appointments: { some: { appointmentAt: dateRange } } },
           ],
         });
       }
@@ -464,16 +485,16 @@ export class PatientsService {
             createdAt: true,
             chiefComplaint: true,
             status: true,
-            provider: { select: { id: true, name: true } },
+            provider: { select: { id: true, name: true, department: true, specialization: true } },
           },
         },
         appointments: {
-          orderBy: { startTime: 'desc' },
+          orderBy: { appointmentAt: 'desc' },
           take: 3,
           select: {
             id: true,
-            startTime: true,
-            provider: { select: { id: true, name: true } },
+            appointmentAt: true,
+            provider: { select: { id: true, name: true, department: true, specialization: true } },
           },
         },
         invoices: {

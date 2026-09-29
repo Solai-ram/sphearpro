@@ -28,12 +28,13 @@ export type PatientSearchHit = {
     createdAt: string;
     chiefComplaint?: string | null;
     status?: string;
-    provider?: { id: string; name: string };
+    provider?: { id: string; name: string; department?: string; specialization?: string };
   }[];
   appointments?: {
     id: string;
-    startTime: string;
-    provider?: { id: string; name: string };
+    appointmentAt?: string;
+    startTime?: string;
+    provider?: { id: string; name: string; department?: string; specialization?: string };
   }[];
   invoices?: { id: string; invoiceNumber?: string; issueDate: string; grandTotal?: number; status?: string }[];
 };
