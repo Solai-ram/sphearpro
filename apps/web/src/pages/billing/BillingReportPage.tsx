@@ -294,21 +294,21 @@ export function BillingReportPage() {
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3.5 py-3 whitespace-nowrap">S.NO</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                   <div className="flex items-center gap-1">
                     <span>INVOICE #</span>
                     <ArrowUpDown className="w-3 h-3 opacity-70" />
                   </div>
                 </th>
-                <th className="px-3.5 py-3 whitespace-nowrap">DATE</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">PATIENT</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">REG NO</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">STATUS</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">BILLED</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">COLLECTED</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">OUTSTANDING</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">ACTION</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">DATE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PATIENT</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">REG NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">STATUS</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">BILLED</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">COLLECTED</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">OUTSTANDING</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -329,23 +329,23 @@ export function BillingReportPage() {
                 paginatedInvoices.map((inv: any, idx: number) => {
                   const rowNumber = (currentPage - 1) * pageSize + idx + 1;
                   return (
-                    <tr key={inv.id} className="hover:bg-cyan-50/40 transition-colors">
-                      <td className="px-3.5 py-2 font-mono text-gray-500">{rowNumber}</td>
-                      <td className="px-3.5 py-2 font-mono font-bold text-blue-700 whitespace-nowrap">
+                    <tr key={inv.id} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{rowNumber}</td>
+                      <td className="px-2.5 py-1.5 font-mono font-bold text-blue-700 whitespace-nowrap border-r border-gray-200">
                         <Link to={`/billing/${inv.id}`} className="hover:underline">
                           {inv.invoiceNumber}
                         </Link>
                       </td>
-                      <td className="px-3.5 py-2 whitespace-nowrap text-gray-600">
+                      <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-600 border-r border-gray-200">
                         {formatDate(inv.createdAt)}
                       </td>
-                      <td className="px-3.5 py-2 font-bold text-gray-900 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 font-bold text-gray-900 whitespace-nowrap border-r border-gray-200">
                         {inv.patient?.name || '—'}
                       </td>
-                      <td className="px-3.5 py-2 font-mono text-blue-600 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 font-mono text-blue-600 whitespace-nowrap border-r border-gray-200">
                         {inv.patient?.patientNumber || '—'}
                       </td>
-                      <td className="px-3.5 py-2 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 whitespace-nowrap border-r border-gray-200">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                             inv.status === 'PAID'
@@ -358,19 +358,19 @@ export function BillingReportPage() {
                           {inv.status}
                         </span>
                       </td>
-                      <td className="px-3.5 py-2 text-right font-medium text-gray-900 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right font-medium text-gray-900 whitespace-nowrap border-r border-gray-200">
                         {money(inv.grandTotal)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-medium text-emerald-700 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right font-medium text-emerald-700 whitespace-nowrap border-r border-gray-200">
                         {money((inv.grandTotal || 0) - (inv.outstanding || 0))}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-medium text-amber-700 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right font-medium text-amber-700 whitespace-nowrap border-r border-gray-200">
                         {money(inv.outstanding)}
                       </td>
-                      <td className="px-3.5 py-2 text-right whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 text-right whitespace-nowrap">
                         <Link
                           to={`/billing/${inv.id}`}
-                          className="px-2.5 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold text-xs inline-flex items-center gap-1 transition-colors"
+                          className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold text-xs inline-flex items-center gap-1 transition-colors"
                         >
                           View Bill
                         </Link>

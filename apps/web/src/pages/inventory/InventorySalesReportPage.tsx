@@ -86,7 +86,7 @@ export function InventorySalesReportPage() {
     const list = filteredSales;
     if (list.length === 0) return;
 
-    const headers = ['S.No', 'Date', 'Product', 'SKU', 'Patient Name', 'Quantity', 'Stock Price', 'MRP', 'Total Price'];
+    const headers = ['S.No', 'Date', 'Product', 'SKU', 'Patient Name', 'Quantity', 'Unit Price', 'Total Price'];
     const rows = list.map((s: any, idx) => [
       idx + 1,
       `"${formatDate(s.soldAt)}"`,
@@ -94,7 +94,6 @@ export function InventorySalesReportPage() {
       `"${s.product?.sku || ''}"`,
       `"${s.patient?.name || ''}"`,
       s.quantity,
-      s.unitCost ?? 0,
       s.unitPrice ?? 0,
       s.totalPrice ?? 0,
     ].join(','));
@@ -282,19 +281,19 @@ export function InventorySalesReportPage() {
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3.5 py-3 whitespace-nowrap">S.NO</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                   <div className="flex items-center gap-1">
                     <span>DATE</span>
                     <ArrowUpDown className="w-3 h-3 opacity-70" />
                   </div>
                 </th>
-                <th className="px-3.5 py-3 whitespace-nowrap">PRODUCT NAME</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">SKU / CODE</th>
-                <th className="px-3.5 py-3 whitespace-nowrap">PATIENT</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">QTY</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">MRP PER UNIT</th>
-                <th className="px-3.5 py-3 text-right whitespace-nowrap">TOTAL AMOUNT</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PRODUCT NAME</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">SKU / CODE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PATIENT</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">QTY</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap border-r border-white/20">MRP PER UNIT</th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap">TOTAL AMOUNT</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -315,18 +314,18 @@ export function InventorySalesReportPage() {
                 paginatedSales.map((s: any, idx: number) => {
                   const rowNumber = (currentPage - 1) * pageSize + idx + 1;
                   return (
-                    <tr key={s.id || idx} className="hover:bg-cyan-50/40 transition-colors">
-                      <td className="px-3.5 py-2 font-mono text-gray-500">{rowNumber}</td>
-                      <td className="px-3.5 py-2 whitespace-nowrap text-gray-600">
+                    <tr key={s.id || idx} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{rowNumber}</td>
+                      <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-600 border-r border-gray-200">
                         {formatDate(s.soldAt)}
                       </td>
-                      <td className="px-3.5 py-2 font-bold text-gray-900 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 font-bold text-gray-900 whitespace-nowrap border-r border-gray-200">
                         {s.product?.name || '—'}
                       </td>
-                      <td className="px-3.5 py-2 font-mono text-blue-700 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 font-mono text-blue-700 whitespace-nowrap border-r border-gray-200">
                         {s.product?.sku || '—'}
                       </td>
-                      <td className="px-3.5 py-2 whitespace-nowrap">
+                      <td className="px-2.5 py-1.5 whitespace-nowrap border-r border-gray-200">
                         {s.patient ? (
                           <Link to={`/patients/${s.patient.id}`} className="font-semibold text-blue-600 hover:underline">
                             {s.patient.name}
@@ -335,13 +334,13 @@ export function InventorySalesReportPage() {
                           <span className="text-gray-500">Direct OTC Sale</span>
                         )}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-semibold text-gray-800">
+                      <td className="px-2.5 py-1.5 text-right font-semibold text-gray-800 border-r border-gray-200">
                         {s.quantity}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-medium text-gray-700 font-mono">
+                      <td className="px-2.5 py-1.5 text-right font-medium text-gray-700 font-mono border-r border-gray-200">
                         {money(s.unitPrice)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-bold text-emerald-700 font-mono">
+                      <td className="px-2.5 py-1.5 text-right font-bold text-emerald-700 font-mono">
                         {money(s.totalPrice)}
                       </td>
                     </tr>

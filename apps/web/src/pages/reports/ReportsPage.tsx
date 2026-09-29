@@ -552,10 +552,10 @@ function HospitalClinicalBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 w-16">S.NO</th>
-                <th className="px-3 py-2.5">ICD / CODE</th>
-                <th className="px-3 py-2.5">DIAGNOSIS DESCRIPTION</th>
-                <th className="px-3 py-2.5 text-right w-28">CASES COUNT</th>
+                <th className="px-2.5 py-2 w-14 border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 border-r border-white/20">ICD / CODE</th>
+                <th className="px-2.5 py-2 border-r border-white/20">DIAGNOSIS DESCRIPTION</th>
+                <th className="px-2.5 py-2 text-right w-28">CASES COUNT</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -568,10 +568,10 @@ function HospitalClinicalBody({
               ) : (
                 topDiagnoses.map((d: any, idx: number) => (
                   <tr key={idx} className="hover:bg-blue-50/40">
-                    <td className="px-3 py-2 font-mono text-gray-500">{idx + 1}</td>
-                    <td className="px-3 py-2 font-mono font-semibold text-gray-700">{d.code || '—'}</td>
-                    <td className="px-3 py-2 font-semibold text-gray-900">{d.description}</td>
-                    <td className="px-3 py-2 text-right font-bold text-cyan-700">{d.count}</td>
+                    <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{idx + 1}</td>
+                    <td className="px-2.5 py-1.5 font-mono font-semibold text-gray-700 border-r border-gray-200">{d.code || '—'}</td>
+                    <td className="px-2.5 py-1.5 font-semibold text-gray-900 border-r border-gray-200">{d.description}</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-cyan-700">{d.count}</td>
                   </tr>
                 ))
               )}
@@ -606,25 +606,25 @@ function HospitalClinicalBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 whitespace-nowrap">
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">
                   <div className="flex items-center gap-1">
                     <span>S.NO</span>
                     <ArrowUpDown className="w-3 h-3 opacity-70" />
                   </div>
                 </th>
-                <th className="px-3 py-2.5 whitespace-nowrap">VISIT DATE</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">REG NO</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">PATIENT NAME</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">AGE / GENDER</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">DOCTOR</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">CHIEF COMPLAINT</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">STATUS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">VISIT DATE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">REG NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PATIENT NAME</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">AGE / GENDER</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">DOCTOR</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">CHIEF COMPLAINT</th>
+                <th className="px-2.5 py-2 whitespace-nowrap">STATUS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedCases.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                     No clinical cases match query criteria.
                   </td>
                 </tr>
@@ -633,18 +633,18 @@ function HospitalClinicalBody({
                   const sNo = (currentPage - 1) * filters.pageSize + idx + 1;
                   return (
                     <tr key={c.id} className="hover:bg-blue-50/40">
-                      <td className="px-3 py-2.5 font-mono text-gray-500">{sNo}</td>
-                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{formatDateTime(c.createdAt)}</td>
-                      <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600">{c.patient?.patientNumber || '—'}</td>
-                      <td className="px-3 py-2.5 font-semibold text-gray-900">{c.patient?.name || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-700">
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{sNo}</td>
+                      <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-700 border-r border-gray-200">{formatDateTime(c.createdAt)}</td>
+                      <td className="px-2.5 py-1.5 font-mono text-[11px] text-gray-600 border-r border-gray-200">{c.patient?.patientNumber || '—'}</td>
+                      <td className="px-2.5 py-1.5 font-semibold text-gray-900 border-r border-gray-200">{c.patient?.name || '—'}</td>
+                      <td className="px-2.5 py-1.5 text-gray-700 border-r border-gray-200">
                         {ageFromDob(c.patient?.dateOfBirth) != null ? `${ageFromDob(c.patient?.dateOfBirth)}y` : '—'} / {c.patient?.gender || '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-800 font-medium">{c.provider?.name || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600 max-w-[200px] truncate" title={c.chiefComplaint || ''}>
+                      <td className="px-2.5 py-1.5 text-gray-800 font-medium border-r border-gray-200">{c.provider?.name || '—'}</td>
+                      <td className="px-2.5 py-1.5 text-gray-600 max-w-[200px] truncate border-r border-gray-200" title={c.chiefComplaint || ''}>
                         {c.chiefComplaint || '—'}
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2.5 py-1.5">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${c.status === 'OPEN' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
                           {c.status}
                         </span>
@@ -770,24 +770,24 @@ function HospitalTherapyBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 w-16">S.NO</th>
-                <th className="px-3 py-2.5">ATTENDANCE STATUS</th>
-                <th className="px-3 py-2.5 text-right w-36">COUNT</th>
+                <th className="px-2.5 py-2 w-14 border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 border-r border-white/20">ATTENDANCE STATUS</th>
+                <th className="px-2.5 py-2 text-right w-36">COUNT</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {attendance.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-3 py-4 text-center text-gray-400">
+                  <td colSpan={3} className="px-4 py-4 text-center text-gray-400">
                     No attendance marked in this period.
                   </td>
                 </tr>
               ) : (
                 attendance.map(([st, cnt], idx) => (
                   <tr key={st} className="hover:bg-blue-50/40">
-                    <td className="px-3 py-2 font-mono text-gray-500">{idx + 1}</td>
-                    <td className="px-3 py-2 font-semibold text-gray-800">{st}</td>
-                    <td className="px-3 py-2 text-right font-bold text-cyan-700">{cnt}</td>
+                    <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{idx + 1}</td>
+                    <td className="px-2.5 py-1.5 font-semibold text-gray-800 border-r border-gray-200">{st}</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-cyan-700">{cnt}</td>
                   </tr>
                 ))
               )}
@@ -822,19 +822,19 @@ function HospitalTherapyBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 whitespace-nowrap">S.NO</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">CASE TITLE</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">PATIENT NAME</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">REG NO</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">THERAPIST</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">STATUS</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">CREATED DATE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">CASE TITLE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PATIENT NAME</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">REG NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">THERAPIST</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">STATUS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap">CREATED DATE</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedCases.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                     No therapy cases found for selected filters.
                   </td>
                 </tr>
@@ -843,17 +843,17 @@ function HospitalTherapyBody({
                   const sNo = (currentPage - 1) * filters.pageSize + idx + 1;
                   return (
                     <tr key={c.id} className="hover:bg-blue-50/40">
-                      <td className="px-3 py-2.5 font-mono text-gray-500">{sNo}</td>
-                      <td className="px-3 py-2.5 font-semibold text-gray-900">{c.title}</td>
-                      <td className="px-3 py-2.5 text-gray-800 font-medium">{c.patient?.name || '—'}</td>
-                      <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600">{c.patient?.patientNumber || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-700">{c.therapist?.name || '—'}</td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{sNo}</td>
+                      <td className="px-2.5 py-1.5 font-semibold text-gray-900 border-r border-gray-200">{c.title}</td>
+                      <td className="px-2.5 py-1.5 text-gray-800 font-medium border-r border-gray-200">{c.patient?.name || '—'}</td>
+                      <td className="px-2.5 py-1.5 font-mono text-[11px] text-gray-600 border-r border-gray-200">{c.patient?.patientNumber || '—'}</td>
+                      <td className="px-2.5 py-1.5 text-gray-700 border-r border-gray-200">{c.therapist?.name || '—'}</td>
+                      <td className="px-2.5 py-1.5 border-r border-gray-200">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${c.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'}`}>
                           {c.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{formatDate(c.createdAt)}</td>
+                      <td className="px-2.5 py-1.5 whitespace-nowrap text-gray-600">{formatDate(c.createdAt)}</td>
                     </tr>
                   );
                 })
@@ -968,28 +968,28 @@ function HospitalAudioBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 w-16">S.NO</th>
-                <th className="px-3 py-2.5">PROCEDURE NAME</th>
-                <th className="px-3 py-2.5">DEPARTMENT</th>
-                <th className="px-3 py-2.5 text-right">TESTS</th>
-                <th className="px-3 py-2.5 text-right">REVENUE</th>
+                <th className="px-2.5 py-2 w-16 border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 border-r border-white/20">PROCEDURE NAME</th>
+                <th className="px-2.5 py-2 border-r border-white/20">DEPARTMENT</th>
+                <th className="px-2.5 py-2 text-right border-r border-white/20">TESTS</th>
+                <th className="px-2.5 py-2 text-right">REVENUE</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(dashboard?.topProcedures || []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-center text-gray-400">
+                  <td colSpan={5} className="px-4 py-4 text-center text-gray-400">
                     No billed audio tests recorded yet.
                   </td>
                 </tr>
               ) : (
                 (dashboard?.topProcedures || []).map((row, idx) => (
                   <tr key={row.name + row.department} className="hover:bg-blue-50/40">
-                    <td className="px-3 py-2 font-mono text-gray-500">{idx + 1}</td>
-                    <td className="px-3 py-2 font-semibold text-gray-900">{row.name}</td>
-                    <td className="px-3 py-2 text-gray-700">{row.department}</td>
-                    <td className="px-3 py-2 text-right font-bold text-gray-900">{row.tests}</td>
-                    <td className="px-3 py-2 text-right font-bold text-cyan-700">{money(row.revenue)}</td>
+                    <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{idx + 1}</td>
+                    <td className="px-2.5 py-1.5 font-semibold text-gray-900 border-r border-gray-200">{row.name}</td>
+                    <td className="px-2.5 py-1.5 text-gray-700 border-r border-gray-200">{row.department}</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-gray-900 border-r border-gray-200">{row.tests}</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-cyan-700">{money(row.revenue)}</td>
                   </tr>
                 ))
               )}
@@ -1024,19 +1024,19 @@ function HospitalAudioBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 whitespace-nowrap">S.NO</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">CODE</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">PROCEDURE NAME</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">DEPARTMENT</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">SAMPLE TYPE</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">TAT (HRS)</th>
-                <th className="px-3 py-2.5 whitespace-nowrap text-right">STANDARD PRICE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">CODE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PROCEDURE NAME</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">DEPARTMENT</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">SAMPLE TYPE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">TAT (HRS)</th>
+                <th className="px-2.5 py-2 whitespace-nowrap text-right">STANDARD PRICE</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedProcedures.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                     No procedures match query criteria.
                   </td>
                 </tr>
@@ -1045,13 +1045,13 @@ function HospitalAudioBody({
                   const sNo = (currentPage - 1) * filters.pageSize + idx + 1;
                   return (
                     <tr key={p.id} className="hover:bg-blue-50/40">
-                      <td className="px-3 py-2.5 font-mono text-gray-500">{sNo}</td>
-                      <td className="px-3 py-2.5 font-mono font-semibold text-gray-700">{p.code}</td>
-                      <td className="px-3 py-2.5 font-semibold text-gray-900">{p.name}</td>
-                      <td className="px-3 py-2.5 text-gray-700">{p.department}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{p.sampleType || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-700">{p.tatHours ? `${p.tatHours}h` : '—'}</td>
-                      <td className="px-3 py-2.5 text-right font-bold text-gray-900">{money(p.price)}</td>
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{sNo}</td>
+                      <td className="px-2.5 py-1.5 font-mono font-semibold text-gray-700 border-r border-gray-200">{p.code}</td>
+                      <td className="px-2.5 py-1.5 font-semibold text-gray-900 border-r border-gray-200">{p.name}</td>
+                      <td className="px-2.5 py-1.5 text-gray-700 border-r border-gray-200">{p.department}</td>
+                      <td className="px-2.5 py-1.5 text-gray-600 border-r border-gray-200">{p.sampleType || '—'}</td>
+                      <td className="px-2.5 py-1.5 text-gray-700 border-r border-gray-200">{p.tatHours ? `${p.tatHours}h` : '—'}</td>
+                      <td className="px-2.5 py-1.5 text-right font-bold text-gray-900">{money(p.price)}</td>
                     </tr>
                   );
                 })
@@ -1186,19 +1186,19 @@ function HospitalAiBody({
           <table className="w-full text-xs text-left">
             <thead className="bg-[#487eb0] text-white font-semibold">
               <tr>
-                <th className="px-3 py-2.5 whitespace-nowrap">S.NO</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">PROVIDER</th>
-                <th className="px-3 py-2.5 whitespace-nowrap">REQUEST TYPE</th>
-                <th className="px-3 py-2.5 whitespace-nowrap text-right">REQUESTS</th>
-                <th className="px-3 py-2.5 whitespace-nowrap text-right">PROMPT TOKENS</th>
-                <th className="px-3 py-2.5 whitespace-nowrap text-right">COMPLETION TOKENS</th>
-                <th className="px-3 py-2.5 whitespace-nowrap text-right">TOTAL TOKENS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">S.NO</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">PROVIDER</th>
+                <th className="px-2.5 py-2 whitespace-nowrap border-r border-white/20">REQUEST TYPE</th>
+                <th className="px-2.5 py-2 whitespace-nowrap text-right border-r border-white/20">REQUESTS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap text-right border-r border-white/20">PROMPT TOKENS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap text-right border-r border-white/20">COMPLETION TOKENS</th>
+                <th className="px-2.5 py-2 whitespace-nowrap text-right">TOTAL TOKENS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                     No AI usage records found for selected period.
                   </td>
                 </tr>
@@ -1209,13 +1209,13 @@ function HospitalAiBody({
                   const rowComp = Number(r.completionTokens || 0);
                   return (
                     <tr key={idx} className="hover:bg-blue-50/40">
-                      <td className="px-3 py-2.5 font-mono text-gray-500">{sNo}</td>
-                      <td className="px-3 py-2.5 font-semibold text-gray-900 capitalize">{r.provider}</td>
-                      <td className="px-3 py-2.5 text-gray-700 font-mono text-[11px]">{r.requestType}</td>
-                      <td className="px-3 py-2.5 text-right font-bold text-gray-900">{r.requests}</td>
-                      <td className="px-3 py-2.5 text-right text-gray-600">{rowPrompt.toLocaleString('en-IN')}</td>
-                      <td className="px-3 py-2.5 text-right text-gray-600">{rowComp.toLocaleString('en-IN')}</td>
-                      <td className="px-3 py-2.5 text-right font-bold text-cyan-700">{(rowPrompt + rowComp).toLocaleString('en-IN')}</td>
+                      <td className="px-2.5 py-1.5 font-mono text-gray-500 border-r border-gray-200">{sNo}</td>
+                      <td className="px-2.5 py-1.5 font-semibold text-gray-900 capitalize border-r border-gray-200">{r.provider}</td>
+                      <td className="px-2.5 py-1.5 text-gray-700 font-mono text-[11px] border-r border-gray-200">{r.requestType}</td>
+                      <td className="px-2.5 py-1.5 text-right font-bold text-gray-900 border-r border-gray-200">{r.requests}</td>
+                      <td className="px-2.5 py-1.5 text-right text-gray-600 border-r border-gray-200">{rowPrompt.toLocaleString('en-IN')}</td>
+                      <td className="px-2.5 py-1.5 text-right text-gray-600 border-r border-gray-200">{rowComp.toLocaleString('en-IN')}</td>
+                      <td className="px-2.5 py-1.5 text-right font-bold text-cyan-700">{(rowPrompt + rowComp).toLocaleString('en-IN')}</td>
                     </tr>
                   );
                 })
