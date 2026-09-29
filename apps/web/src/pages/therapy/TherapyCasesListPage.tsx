@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Plus, Search, Loader2, AlertCircle, ChevronLeft, ChevronRight, Activity, Calendar } from 'lucide-react';
+import { Plus, Search, Loader2, AlertCircle, ChevronLeft, ChevronRight, Activity, Calendar, Printer } from 'lucide-react';
 import { therapyApi } from '../../services/therapy';
 import type { TherapyCase, TherapyFilters } from '../../types/therapy';
 import { useAuth } from '../../auth/AuthContext';
@@ -62,7 +62,11 @@ export function TherapyCasesListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Therapy cases</h1>
           <p className="text-gray-500">Registered therapy cases after an OP consultation</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Link to="/reports/therapy" className="btn-secondary">
+            <Printer className="w-4 h-4 mr-1.5" />
+            Therapy report
+          </Link>
           <Link to="/therapy/packages" className="btn-secondary">Therapy masters</Link>
           <Link to="/therapy/new" className="btn-primary">
             <Plus className="w-4 h-4 mr-2" />
