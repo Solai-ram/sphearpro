@@ -2,7 +2,7 @@
 .SYNOPSIS
     One-click push and deploy to production VPS.
 .DESCRIPTION
-    Pushes local code to git and triggers deployment on the production VPS via SSH.
+    Pushes local code to git (main and current branch) and triggers deployment on the production VPS via SSH.
 .EXAMPLE
     .\deploy.ps1
     .\deploy.ps1 "fix: update invoice print layout"
@@ -39,7 +39,7 @@ if ($currentBranch -ne "main") {
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " [2/4] Triggering build & deploy on VPS ($VpsHost)..." -ForegroundColor Cyan
+Write-Host " [2/4] Triggering build and deploy on VPS ($VpsHost)..." -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $remoteScript = @'
@@ -54,7 +54,7 @@ echo "--> Building updated containers..."
 docker compose --env-file .env.production -f docker-compose.prod.yml build
 
 echo ""
-echo "--> Applying database migrations (if any)..."
+echo "--> Running database migrations..."
 docker compose --env-file .env.production -f docker-compose.prod.yml run --rm api npx prisma migrate deploy --schema=prisma/schema.prisma || true
 
 echo ""
@@ -74,11 +74,11 @@ echo "--> Checking Web Frontend:"
 curl -IsS https://sphearpro.tech | head -n 5
 '@
 
-ssh -o StrictHostKeyChecking=accept-new $VpsHost $remoteScript
+$remoteScript | ssh -o StrictHostKeyChecking=accept-new $VpsHost "bash -s"
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Green
-Write-Host " Deployment to VPS Complete! 🎉" -ForegroundColor Green
+Write-Host " Deployment to VPS Complete!" -ForegroundColor Green
 Write-Host " Web: https://sphearpro.tech" -ForegroundColor Green
 Write-Host " API: https://api.sphearpro.tech/api/v1/health" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green
