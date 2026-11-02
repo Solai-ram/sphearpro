@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, FlaskConical, Loader2, Package, Pill, Plus, Search, Stethoscope, Trash2 } from 'lucide-react';
 import { billingApi } from '../../services/billing';
 import { inventoryApi } from '../../services/inventory';
@@ -55,6 +55,8 @@ function emptyLine(category: Category): InvoiceItemInput {
 
 export function InvoiceCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetPatientId = searchParams.get('patientId') || '';
   const [category, setCategory] = useState<Category | null>(null);
   const [patientQuery, setPatientQuery] = useState('');
   const [patients, setPatients] = useState<{ id: string; name: string; patientNumber: string }[]>([]);
@@ -77,6 +79,14 @@ export function InvoiceCreatePage() {
     labApi.getProcedures({ limit: 100 }).then((res) => setLabCatalog(res.data || [])).catch(() => undefined);
     therapyApi.getPackages().then((res) => setPackages((res.data || []).filter((p) => p.isActive !== false))).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!presetPatientId) return;
+    patientsApi.getById<{ name: string; patientNumber: string }>(presetPatientId).then((p) => {
+      setPatientId(presetPatientId);
+      setSelectedName(`${p.name} (${p.patientNumber})`);
+    }).catch(() => undefined);
+  }, [presetPatientId]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {

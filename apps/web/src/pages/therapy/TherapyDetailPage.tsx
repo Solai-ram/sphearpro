@@ -201,6 +201,17 @@ export function TherapyDetailPage() {
     );
   }, [therapyCase]);
 
+  const doctorNames = useMemo(() => {
+    if (!therapyCase) return [];
+    const set = new Set<string>();
+    if (therapyCase.therapist?.name) set.add(therapyCase.therapist.name);
+    (therapyCase.sessions || []).forEach((s) => {
+      if (s.doctor?.name) set.add(s.doctor.name);
+      if (s.therapist?.name) set.add(s.therapist.name);
+    });
+    return Array.from(set).map(doctorLabel);
+  }, [therapyCase]);
+
   if (isDoctorOnly) {
     return <Navigate to="/doctor/sessions" replace />;
   }
@@ -217,17 +228,6 @@ export function TherapyDetailPage() {
   ];
 
   const pending = therapyCase.pendingDoctorNotes || [];
-
-  const doctorNames = useMemo(() => {
-    if (!therapyCase) return [];
-    const set = new Set<string>();
-    if (therapyCase.therapist?.name) set.add(therapyCase.therapist.name);
-    (therapyCase.sessions || []).forEach((s) => {
-      if (s.doctor?.name) set.add(s.doctor.name);
-      if (s.therapist?.name) set.add(s.therapist.name);
-    });
-    return Array.from(set).map(doctorLabel);
-  }, [therapyCase]);
 
   return (
     <div className="space-y-6">
@@ -326,6 +326,14 @@ export function TherapyDetailPage() {
             </select>
             <button type="button" className="btn-primary" onClick={handleAssign} disabled={!packageId}>Assign & generate sessions</button>
           </div>
+          {(therapyCase.packages || []).length > 0 && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+              <span className="text-xs text-blue-900 font-medium">Sessions generated from active package. Ready to assign doctor slots?</span>
+              <Link to={`/appointments/assign/${therapyCase.patientId}`} className="text-xs font-semibold text-blue-700 hover:underline">
+                Assign Doctor & Schedule Slots &rarr;
+              </Link>
+            </div>
+          )}
           {(therapyCase.packages || []).map((p) => (
             <div key={p.id} className="card p-4 flex justify-between">
               <div>
@@ -339,7 +347,20 @@ export function TherapyDetailPage() {
       )}
 
       {tab === 'sessions' && (
-        <div className="card overflow-hidden">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-blue-950">Schedule & Doctor Slot Assignment</p>
+              <p className="text-xs text-blue-800">Assign attending doctors and specific time slots across all sessions on the clinic calendar.</p>
+            </div>
+            <Link
+              to={`/appointments/assign/${therapyCase.patientId}`}
+              className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap"
+            >
+              Assign Doctors & Slots &rarr;
+            </Link>
+          </div>
+          <div className="card overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
@@ -405,6 +426,7 @@ export function TherapyDetailPage() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       )}
 
