@@ -113,7 +113,7 @@ export function PatientDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600">
             <ArrowLeft className="w-5 h-5" />
@@ -128,10 +128,30 @@ export function PatientDetailPage() {
             <p className="text-gray-500">Patient registered {formatDate(patient.createdAt)}</p>
           </div>
         </div>
-        <Link to={`/patients/${patient.id}/edit`} className="btn-outline">
-          <Edit className="w-4 h-4 mr-2" />
-          Edit
-        </Link>
+        
+        {/* Quick action triggers */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to={`/patients/op-new?patientId=${patient.id}`} className="btn-secondary text-xs font-semibold py-1.5 px-3">
+            <Stethoscope className="w-3.5 h-3.5 mr-1 text-blue-600" />
+            + OP Consultation
+          </Link>
+          <Link to={`/patients/op-review?patientId=${patient.id}`} className="btn-secondary text-xs font-semibold py-1.5 px-3">
+            <Clock className="w-3.5 h-3.5 mr-1 text-purple-600" />
+            + OP Review
+          </Link>
+          <Link to={`/therapy/new?patientId=${patient.id}`} className="btn-secondary text-xs font-semibold py-1.5 px-3">
+            <Pill className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+            + Therapy Program
+          </Link>
+          <Link to={`/billing/new?patientId=${patient.id}`} className="btn-secondary text-xs font-semibold py-1.5 px-3">
+            <DollarSign className="w-3.5 h-3.5 mr-1 text-amber-600" />
+            + New Bill
+          </Link>
+          <Link to={`/patients/${patient.id}/edit`} className="btn-outline text-xs font-semibold py-1.5 px-3">
+            <Edit className="w-3.5 h-3.5 mr-1" />
+            Edit
+          </Link>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -222,7 +242,7 @@ export function PatientDetailPage() {
             {patient.timelineEvents?.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>No activity yet for this patient</p>
-                <Link to="/patients/op-new" className="text-blue-600 hover:text-blue-500 mt-2 inline-block">
+                <Link to={`/patients/op-new?patientId=${patient.id}`} className="text-blue-600 hover:text-blue-500 mt-2 inline-block font-medium">
                   Register OP visit
                 </Link>
               </div>
@@ -242,7 +262,7 @@ export function PatientDetailPage() {
                     </div>
                   </div>
                 ))}
-                <Link to={`/patients/${patient.id}`} className="text-sm text-blue-600 hover:text-blue-500">
+                <Link to={`/patients/${patient.id}`} className="text-sm text-blue-600 hover:text-blue-500 font-medium">
                   View full timeline
                 </Link>
               </div>

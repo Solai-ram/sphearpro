@@ -124,7 +124,13 @@ describe('rbac', () => {
       expect(names).not.toContain('Billing');
       expect(names).not.toContain('Inventory');
       expect(names).not.toContain('Users');
-      expect(names).not.toContain('Reports');
+      expect(names).toContain('Reports');
+
+      const reportChildren = nav.find((n) => n.name === 'Reports')?.children?.map((c) => c.name) || [];
+      expect(reportChildren).toContain('OP clinical reports');
+      expect(reportChildren).toContain('OP visits reports');
+      expect(reportChildren).not.toContain('Billing reports');
+      expect(reportChildren).not.toContain('Stock reports');
 
       const patientChildren = nav.find((n) => n.name === 'Patients')?.children?.map((c) => c.name) || [];
       expect(patientChildren).toContain('Patient search');
