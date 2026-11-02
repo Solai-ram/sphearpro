@@ -212,7 +212,7 @@ describe('AttendanceService tenancy + guards', () => {
 
   it('markAbsentForPreviousDay converts open punches to HALF_DAY', async () => {
     prisma.clinic = { findMany: vi.fn().mockResolvedValue([{ id: 'clinic_a' }]) };
-    prisma.setting.findMany.mockResolvedValue([{ key: 'attendance.enabled', value: true }]);
+    prisma.setting.findMany.mockResolvedValue([{ key: 'attendance.enabled', value: true }, { key: 'attendance.weekOffDays', value: [] }]);
     prisma.user.findMany.mockResolvedValue([{ id: 'user_1' }, { id: 'user_2' }]);
     prisma.staffAttendance.findMany.mockResolvedValue([
       {
